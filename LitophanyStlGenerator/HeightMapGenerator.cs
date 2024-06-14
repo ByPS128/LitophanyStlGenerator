@@ -19,7 +19,7 @@ namespace LitophanyStlGenerator
             int originalHeight = image.Height;
             int newWidth = originalWidth * resolution / 10; // Převod rozlišení na počet bodů na cm
             int newHeight = originalHeight * resolution / 10;
-            double[,] heightMap = new double[newHeight, newWidth];
+            double[,] heightMap = new double[newWidth, newHeight];
 
             for (int y = 0; y < newHeight; y++)
             {
@@ -29,7 +29,8 @@ namespace LitophanyStlGenerator
                     int originalY = y * originalHeight / newHeight;
                     byte pixelValue = image[originalX, originalY].PackedValue;
                     double normalizedValue = pixelValue / 255.0;
-                    heightMap[y, x] = minHeightMM + normalizedValue * (maxHeightMM - minHeightMM);
+                    //heightMap[x, y] = minHeightMM + normalizedValue * (maxHeightMM - minHeightMM);
+                    heightMap[x, y] = minHeightMM + (1 - normalizedValue) * (maxHeightMM - minHeightMM);
                 }
             }
 
