@@ -6,31 +6,57 @@ namespace LitophanyStlGenerator
     {
         /// <summary>
         /// Generuje height mapu z obrázku na základě hodnot pixelů.
+        /// Přidán parametr resolution pro definici hustoty bodů na centimetr.
         /// </summary>
         /// <param name="image">Zpracovaný obrázek.</param>
         /// <param name="minHeightMM">Minimální výška v mm.</param>
         /// <param name="maxHeightMM">Maximální výška v mm.</param>
+        /// <param name="resolution">Počet bodů na centimetr.</param>
         /// <returns>Generovaná height mapa.</returns>
-        public static double[,] GenerateHeightMap(Image<L8> image, double minHeightMM, double maxHeightMM)
+        public static double[,] GenerateHeightMap(Image<L8> image, double minHeightMM, double maxHeightMM, int resolution)
         {
-            int width = image.Width;
-            int height = image.Height;
-            double[,] heightMap = new double[height, width];
+            int originalWidth = image.Width;
+            int originalHeight = image.Height;
+            int newWidth = originalWidth * resolution / 10; // Převod rozlišení na počet bodů na cm
+            int newHeight = originalHeight * resolution / 10;
+            double[,] heightMap = new double[newHeight, newWidth];
 
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < newHeight; y++)
             {
-                for (int x = 0; x < width; x++)
+                for (int x = 0; x < newWidth; x++)
                 {
-                    byte pixelValue = image[x, y].PackedValue;
+                    int originalX = x * originalWidth / newWidth;
+                    int originalY = y * originalHeight / newHeight;
+                    byte pixelValue = image[originalX, originalY].PackedValue;
                     double normalizedValue = pixelValue / 255.0;
                     heightMap[y, x] = minHeightMM + normalizedValue * (maxHeightMM - minHeightMM);
                 }
             }
 
-            Console.WriteLine($"HeightMap Generated: Width = {width}, Height = {height}");
-            Console.WriteLine($"Sample Value (0,0): {heightMap[0, 0]}");
-
             return heightMap;
+        }
+
+        /// <summary>
+        /// Kombinuje dvě height mapy do jedné.
+        /// </summary>
+        /// <param name="frontHeightMap">Height mapa přední strany.</param>
+        /// <param name="backHeightMap">Height mapa zadní strany.</param>
+        /// <returns>Kombinovaná height mapa.</returns>
+        public static double[,] CombineHeightMaps(double[,] frontHeightMap, double[,] backHeightMap)
+        {
+            int width = frontHeightMap.GetLength(1);
+            int height = frontHeightMap.GetLength(0);
+            double[,] combinedHeightMap = new double[height, width];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    combinedHeightMap[y, x] = (frontHeightMap[y, x] + backHeightMap[y, x]) / 2.0;
+                }
+            }
+
+            return combinedHeightMap;
         }
     }
 }

@@ -1,49 +1,63 @@
-﻿using SixLabors.ImageSharp.PixelFormats;
+﻿using System;
 
-namespace LitophanyStlGenerator;
-
-internal class Program
+namespace LithophaneGenerator
 {
-    private static void Main(string[] args)
+    class Program
     {
-        try
+        static void Main(string[] args)
         {
-            // Definování cesty k obrázkům
-            var frontImagePath = "./demo-photos/back_image.png";
-            var backImagePath = "./demo-photos/back_image.png";
-            var outputDirectory = @"c:\temp\";
-            var outputMask = "output";
+            try
+            {
+                // Definování cesty k obrázkům
+                var frontImagePath = "./demo-photos/front_image.png";
+                var backImagePath = "./demo-photos/back_image.png";
+                var outputDirectory = @"c:\temp\";
+                var outputMask = "output";
 
-            // Generování očíslovaného názvu souboru
-            string outputPath = FileHelper.GetNextFileName(outputDirectory, outputMask);
+                // Generování očíslovaného názvu souboru
+                var outputPath = FileHelper.GetNextFileName(outputDirectory, outputMask);
 
-            // Definování rozměrů a tlouštěk
-            var finalWidthMM = 100; // 10 cm
-            var finalHeightMM = 150; // 15 cm
-            var minHeightMM = 1.0; // Tloušťka pro nejsvětlejší barvu (např. 1 mm)
-            var maxHeightMM = 5.0; // Tloušťka pro nejtmavší barvu (např. 5 mm)
+                // Definování rozměrů a tlouštěk
+                int finalWidthMM = 100; // 10 cm
+                int finalHeightMM = 150; // 15 cm
+                double minHeightMM = 1.0; // Tloušťka pro nejsvětlejší barvu (např. 1 mm)
+                double maxHeightMM = 5.0; // Tloušťka pro nejtmavší barvu (např. 5 mm)
+                int resolution = 5; // Hustota bodů na centimetr
 
-            // Načtení a zpracování obrázků
-            Image<L8> frontImage = ImageProcessor.LoadAndProcessImage(frontImagePath, new Size(1000, 1500), false);
-            Image<L8> backImage = ImageProcessor.LoadAndProcessImage(backImagePath, new Size(1000, 1500), false);
+                // Načtení a zpracování obrázků
+                var frontImage = ImageProcessor.LoadAndProcessImage(frontImagePath, new Size(1000, 1500), false);
+                var backImage = ImageProcessor.LoadAndProcessImage(backImagePath, new Size(1000, 1500), false);
 
-            // Kontrola rozměrů obrázků
-            Console.WriteLine($"Front Image Size: {frontImage.Width} x {frontImage.Height}");
-            Console.WriteLine($"Back Image Size: {backImage.Width} x {backImage.Height}");
+                // Kontrola rozměrů obrázků
+                Console.WriteLine($"Front Image Size: {frontImage.Width} x {frontImage.Height}");
+                Console.WriteLine($"Back Image Size: {backImage.Width} x {backImage.Height}");
 
-            // Generování height mapy
-            double[,] frontHeightMap = HeightMapGenerator.GenerateHeightMap(frontImage, minHeightMM, maxHeightMM);
-            double[,] backHeightMap = HeightMapGenerator.GenerateHeightMap(backImage, minHeightMM, maxHeightMM);
-            double[,] resultHeightMap = backHeightMap;
+                // Generování height mapy
+                double[,] frontHeightMap = HeightMapGenerator.GenerateHeightMap(frontImage, minHeightMM, maxHeightMM, resolution);
+                double[,] backHeightMap = HeightMapGenerator.GenerateHeightMap(backImage, minHeightMM, maxHeightMM, resolution);
+                double[,] resultHeightMap = backHeightMap;
 
-            // Export do STL souboru
-            STLExporter.SaveAsSTL(resultHeightMap, finalWidthMM, finalHeightMM, outputPath);
+                // Výběr implementace exportéru
+                IStlExporter stlExporter;
 
-            Console.WriteLine("STL soubor byl úspěšně vytvořen: " + outputPath);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Chyba: {ex.Message}");
+                if (false && args.Length > 0 && args[0] == "useNuget")
+                {
+                    //stlExporter = new StlExporter2(); // Použití STLWriter
+                }
+                else
+                {
+                   stlExporter = new StlExporter(); // Použití vlastního exportéru
+                }
+
+                // Export do STL souboru
+                stlExporter.SaveAsSTL(resultHeightMap, finalWidthMM, finalHeightMM, outputPath, resolution);
+
+                Console.WriteLine("STL soubor byl úspěšně vytvořen: " + outputPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba: {ex.Message}");
+            }
         }
     }
 }
