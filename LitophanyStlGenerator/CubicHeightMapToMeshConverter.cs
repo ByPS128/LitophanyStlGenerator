@@ -6,7 +6,7 @@ namespace LitophanyStlGenerator
     public class CubicHeightMapToMeshConverter : IHeightMapToMesh
     {
         /// <summary>
-        /// Převádí height mapu na mesh s kvádry.
+        /// Převádí height mapu na mesh s kvádry a optimalizuje základnu a boky.
         /// </summary>
         /// <param name="heightMap">Height mapa.</param>
         /// <param name="finalWidthMM">Šířka výsledného modelu v mm.</param>
@@ -37,23 +37,98 @@ namespace LitophanyStlGenerator
                     Vector3 v6 = v2 + new Vector3(0, 0, (float)zHeight);
                     Vector3 v7 = v3 + new Vector3(0, 0, (float)zHeight);
 
-                    AddCube(mesh, v0, v1, v2, v3, v4, v5, v6, v7);
+                    AddCubeFaces(mesh, v0, v1, v2, v3, v4, v5, v6, v7);
                 }
             }
+
+            // Přidání základny a stran modelu
+            WriteBase(mesh, width, height, scaleX, scaleY);
+            WriteSides(mesh, heightMap, scaleX, scaleY);
 
             return mesh;
         }
 
         /// <summary>
+        /// Přidá základnu modelu do meshe.
+        /// </summary>
+        /// <param name="mesh">Mesh.</param>
+        /// <param name="width">Šířka height mapy.</param>
+        /// <param name="height">Výška height mapy.</param>
+        /// <param name="scaleX">Škálování osy X.</param>
+        /// <param name="scaleY">Škálování osy Y.</param>
+        private void WriteBase(Mesh mesh, int width, int height, double scaleX, double scaleY)
+        {
+            var v0 = new Vector3(0f, 0f, 0f);
+            var v1 = new Vector3(0f, (float)((width - 1) * scaleX), 0f);
+            var v2 = new Vector3((float)((height - 1) * scaleY), (float)((width - 1) * scaleX), 0f);
+            var v3 = new Vector3((float)((height - 1) * scaleY), 0f, 0f);
+
+            AddFace(mesh, v0, v1, v2, v3);
+        }
+
+        /// <summary>
+        /// Přidá strany modelu do meshe.
+        /// </summary>
+        /// <param name="mesh">Mesh.</param>
+        /// <param name="heightMap">Height mapa.</param>
+        /// <param name="scaleX">Škálování osy X.</param>
+        /// <param name="scaleY">Škálování osy Y.</param>
+        private void WriteSides(Mesh mesh, double[,] heightMap, double scaleX, double scaleY)
+        {
+            int width = heightMap.GetLength(1);
+            int height = heightMap.GetLength(0);
+
+            // Levá strana
+            for (var y = 0; y < height - 1; y++)
+            {
+                AddSide(mesh,
+                    y * scaleY, 0, heightMap[y, 0],
+                    (y + 1) * scaleY, 0, heightMap[y + 1, 0],
+                    (y + 1) * scaleY, 0, 0,
+                    y * scaleY, 0, 0);
+            }
+
+            // Pravá strana
+            for (var y = 0; y < height - 1; y++)
+            {
+                AddSide(mesh,
+                    y * scaleY, (width - 1) * scaleX, heightMap[y, width - 1],
+                    (y + 1) * scaleY, (width - 1) * scaleX, heightMap[y + 1, width - 1],
+                    (y + 1) * scaleY, (width - 1) * scaleX, 0,
+                    y * scaleY, (width - 1) * scaleX, 0);
+            }
+
+            // Spodní strana
+            for (var x = 0; x < width - 1; x++)
+            {
+                AddSide(mesh,
+                    0, x * scaleX, heightMap[0, x],
+                    0, (x + 1) * scaleX, heightMap[0, x + 1],
+                    0, (x + 1) * scaleX, 0,
+                    0, x * scaleX, 0);
+            }
+
+            // Horní strana
+            for (var x = 0; x < width - 1; x++)
+            {
+                AddSide(mesh,
+                    (height - 1) * scaleY, x * scaleX, heightMap[height - 1, x],
+                    (height - 1) * scaleY, (x + 1) * scaleX, heightMap[height - 1, x + 1],
+                    (height - 1) * scaleY, (x + 1) * scaleX, 0,
+                    (height - 1) * scaleY, x * scaleX, 0);
+            }
+        }
+
+        /// <summary>
         /// Přidá kvádr do meshe.
         /// </summary>
-        private void AddCube(Mesh mesh, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4, Vector3 v5, Vector3 v6, Vector3 v7)
+        private void AddCubeFaces(Mesh mesh, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4, Vector3 v5, Vector3 v6, Vector3 v7)
         {
-            // Bottom face
-            AddFace(mesh, v0, v1, v2, v3);
-
             // Top face
             AddFace(mesh, v4, v5, v6, v7);
+
+            // Bottom face is handled by WriteBase
+            // AddFace(mesh, v0, v1, v2, v3);
 
             // Front face
             AddFace(mesh, v0, v1, v5, v4);
@@ -75,6 +150,19 @@ namespace LitophanyStlGenerator
         {
             mesh.AddTriangle(v0, v1, v2);
             mesh.AddTriangle(v0, v2, v3);
+        }
+
+        /// <summary>
+        /// Přidá jednu stranu modelu do meshe.
+        /// </summary>
+        private void AddSide(Mesh mesh, double x0, double y0, double z0, double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3)
+        {
+            var v0 = new Vector3((float)x0, (float)y0, (float)z0);
+            var v1 = new Vector3((float)x1, (float)y1, (float)z1);
+            var v2 = new Vector3((float)x2, (float)y2, (float)z2);
+            var v3 = new Vector3((float)x3, (float)y3, (float)z3);
+
+            AddFace(mesh, v0, v1, v2, v3);
         }
     }
 }
