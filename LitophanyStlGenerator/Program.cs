@@ -1,5 +1,4 @@
-﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+﻿using SixLabors.ImageSharp.PixelFormats;
 
 namespace LitophanyStlGenerator;
 
@@ -10,9 +9,13 @@ internal class Program
         try
         {
             // Definování cesty k obrázkům
-            var frontImagePath = "./demo-photos/front_image.png";
+            var frontImagePath = "./demo-photos/back_image.png";
             var backImagePath = "./demo-photos/back_image.png";
-            var outputPath = @"c:\temp\litophany-output.stl";
+            var outputDirectory = @"c:\temp\";
+            var outputMask = "output";
+
+            // Generování očíslovaného názvu souboru
+            string outputPath = FileHelper.GetNextFileName(outputDirectory, outputMask);
 
             // Definování rozměrů a tlouštěk
             var finalWidthMM = 100; // 10 cm
@@ -21,18 +24,22 @@ internal class Program
             var maxHeightMM = 5.0; // Tloušťka pro nejtmavší barvu (např. 5 mm)
 
             // Načtení a zpracování obrázků
-            Image<L8> frontImage = ImageProcessor.LoadAndProcessImage(frontImagePath, new Size(1000, 1500), true);
+            Image<L8> frontImage = ImageProcessor.LoadAndProcessImage(frontImagePath, new Size(1000, 1500), false);
             Image<L8> backImage = ImageProcessor.LoadAndProcessImage(backImagePath, new Size(1000, 1500), false);
+
+            // Kontrola rozměrů obrázků
+            Console.WriteLine($"Front Image Size: {frontImage.Width} x {frontImage.Height}");
+            Console.WriteLine($"Back Image Size: {backImage.Width} x {backImage.Height}");
 
             // Generování height mapy
             double[,] frontHeightMap = HeightMapGenerator.GenerateHeightMap(frontImage, minHeightMM, maxHeightMM);
             double[,] backHeightMap = HeightMapGenerator.GenerateHeightMap(backImage, minHeightMM, maxHeightMM);
-            double[,] resultHeightMap = HeightMapGenerator.CalculateResultHeightMap(frontHeightMap, backHeightMap);
+            double[,] resultHeightMap = backHeightMap;
 
             // Export do STL souboru
             STLExporter.SaveAsSTL(resultHeightMap, finalWidthMM, finalHeightMM, outputPath);
 
-            Console.WriteLine("STL soubor byl úspěšně vytvořen.");
+            Console.WriteLine("STL soubor byl úspěšně vytvořen: " + outputPath);
         }
         catch (Exception ex)
         {

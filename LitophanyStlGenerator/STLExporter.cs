@@ -30,7 +30,10 @@ public static class STLExporter
                 // Vytvoření a zápis hlavičky s metadaty
                 string header = CreateHeader();
                 writer.Write(Encoding.ASCII.GetBytes(header.PadRight(80))); // STL header musí být přesně 80 bajtů
-                writer.Write(width * height * 2); // Počet trojúhelníků
+                int numTriangles = (width - 1) * (height - 1) * 2;
+                writer.Write(numTriangles); // Počet trojúhelníků
+
+                Console.WriteLine($"Generating {numTriangles} triangles for STL file.");
 
                 for (var y = 0; y < height - 1; y++)
                 {
@@ -44,6 +47,15 @@ public static class STLExporter
                         // Zapsání dvou trojúhelníkových ploch
                         WriteTriangle(writer, v0, v1, v2);
                         WriteTriangle(writer, v1, v3, v2);
+
+                        // Vypišme některé hodnoty pro kontrolu
+                        if (x == 0 && y == 0)
+                        {
+                            Console.WriteLine($"Sample Vertex v0: {v0}");
+                            Console.WriteLine($"Sample Vertex v1: {v1}");
+                            Console.WriteLine($"Sample Vertex v2: {v2}");
+                            Console.WriteLine($"Sample Vertex v3: {v3}");
+                        }
                     }
                 }
             }
@@ -120,5 +132,10 @@ public struct Vector3
             Y /= length;
             Z /= length;
         }
+    }
+
+    public override string ToString()
+    {
+        return $"({X}, {Y}, {Z})";
     }
 }
