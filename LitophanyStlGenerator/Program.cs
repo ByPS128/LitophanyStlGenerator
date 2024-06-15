@@ -19,9 +19,12 @@ internal class Program
         // Definování rozměrů a tlouštěk
         var finalWidthMM = 150; // 10 cm
         var finalHeightMM = 100; // 15 cm
-        var minHeightMM = 1.0; // Tloušťka pro nejsvětlejší barvu (např. 1 mm)
-        var maxHeightMM = 5.0; // Tloušťka pro nejtmavší barvu (např. 5 mm)
+        
+        var minHeightMM = 0.5; // Tloušťka pro nejsvětlejší barvu (např. 1 mm)
+        var maxHeightMM = 3.5; // Tloušťka pro nejtmavší barvu (např. 5 mm)
+
         var resolution = 3; // Hustota bodů na centimetr
+        
         var sigma = 1.0; // Sigma pro Gaussian blur
         var threshold = 0.5; // Prahová hodnota pro vyhlazení kontrastu
         var windowSize = 3; // Velikost okna pro Median filter
@@ -29,7 +32,7 @@ internal class Program
         var sigmaRange = 1.0; // Sigma pro rozsahovou část Bilateral filter
 
         // Načtení a zpracování obrázků
-        Image<L8> backImage = ImageProcessor.LoadAndProcessImage(backImagePath, new Size(1500, 1000), true);
+        Image<L8> backImage = ImageProcessor.LoadAndProcessImage(backImagePath, new Size(1500, 1000), false);
 
         // Kontrola rozměrů obrázku
         Console.WriteLine($"Back Image Size: {backImage.Width} x {backImage.Height}");
