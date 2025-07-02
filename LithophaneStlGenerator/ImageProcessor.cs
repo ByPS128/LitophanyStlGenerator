@@ -1,4 +1,4 @@
-﻿using LithophaneStlGenerator.Enums;
+﻿using LithophaneStlGenerator.Models.Enums;
 
 namespace LithophaneStlGenerator;
 
@@ -29,20 +29,24 @@ public static class ImageProcessor
                 }
             }
 
+            // Získej referenci na resample metodu PŘED smyčkami, to naboostí celý processing
+            Func<Image<L8>, double, double, L8> resampleFunc = resampleMethod switch
+            {
+                ResampleMethod.Bicubic => BicubicResample,
+                ResampleMethod.Bilinear => BilinearResample,
+                ResampleMethod.Lanczos3 => Lanczos3Resample,
+                _ => throw new ArgumentOutOfRangeException(nameof(resampleMethod), resampleMethod, null)
+            };
+
             var resizedImage = new Image<L8>(targetSize.Width, targetSize.Height);
+
             for (int y = 0; y < targetSize.Height; y++)
             {
                 for (int x = 0; x < targetSize.Width; x++)
                 {
                     double srcX = x * (double)image.Width / targetSize.Width;
                     double srcY = y * (double)image.Height / targetSize.Height;
-                    resizedImage[x, y] = resampleMethod switch
-                    {
-                        ResampleMethod.Bicubic => BicubicResample(image, srcX, srcY),
-                        ResampleMethod.Bilinear => BilinearResample(image, srcX, srcY),
-                        ResampleMethod.Lanczos3 => Lanczos3Resample(image, srcX, srcY),
-                        _ => throw new ArgumentOutOfRangeException(nameof(resampleMethod), resampleMethod, null)
-                    };
+                    resizedImage[x, y] = resampleFunc(image, srcX, srcY);
                 }
             }
 

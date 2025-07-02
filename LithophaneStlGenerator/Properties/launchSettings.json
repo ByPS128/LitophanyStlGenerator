@@ -2,9 +2,9 @@
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
     
-    "Bilateral ContinuousSurface": {
+    "FDM 0.4mm Bilateral ContinuousSurface": {
       "commandName": "Project",
-      "commandLineArgs": "BilateralFilter ContinuousSurface"
+      "commandLineArgs": "demo-photos\\IMG_9325.JPG templates\\fdm-0.4mm-BilateralFilter-ContinuousSurface.json c:\\temp\\"
     },
     "Bilateral Cubic": {
       "commandName": "Project",

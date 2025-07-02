@@ -16,7 +16,6 @@
 
     <ItemGroup>
       <Folder Include="demo-photos\" />
-      <Folder Include="Settings\" />
       <Folder Include="Templates\" />
     </ItemGroup>
 
@@ -27,8 +26,14 @@
       <None Update="demo-photos\front_image.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="demo-photos\back2_image.png">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <None Update="demo-photos\IMG_9325.JPG">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="demo-photos\heart_image.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="Templates\fdm-0.4mm-BilateralFilter-ContinuousSurface.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 

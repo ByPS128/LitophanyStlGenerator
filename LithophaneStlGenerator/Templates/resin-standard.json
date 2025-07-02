@@ -1,0 +1,25 @@
+{
+  "finalWidthMM": 150,
+  "finalHeightMM": 100,
+  "minHeightMM": 0.6,
+  "maxHeightMM": 3.6,
+  "printMode": "Resin",
+  "resampleMethod": "Bicubic",
+  "smoothingAlgorithm": "BilateralFilter",
+  "meshConverterType": "ContinuousSurface",
+  "fdmSettings": null,
+  "resinSettings": {
+    "resolution": 10
+  },
+  "gaussianBlur": {
+    "sigma": 2,
+    "threshold": 0.5
+  },
+  "medianFilter": {
+    "windowSize": 3
+  },
+  "bilateralFilter": {
+    "sigmaSpatial": 1,
+    "sigmaRange": 1
+  }
+}

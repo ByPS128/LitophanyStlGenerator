@@ -1,4 +1,4 @@
-﻿namespace LithophaneStlGenerator.Enums;
+﻿namespace LithophaneStlGenerator.Models.Enums;
 
 public enum ResampleMethod
 {

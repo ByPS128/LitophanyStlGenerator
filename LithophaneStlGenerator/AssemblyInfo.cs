@@ -1,11 +1,13 @@
 ﻿global using System;
+global using System.ComponentModel.DataAnnotations;
 global using System.IO;
 global using System.Numerics;
 global using System.Text;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
 global using LithophaneStlGenerator.Helpers;
 global using SixLabors.ImageSharp;
 global using SixLabors.ImageSharp.PixelFormats;
 global using SixLabors.ImageSharp.Processing;
 global using SixLabors.ImageSharp.Processing.Processors.Transforms;
-global using LithophaneStlGenerator.Enums;
 global using LithophaneStlGenerator.HeightMapToMeshConverters;
