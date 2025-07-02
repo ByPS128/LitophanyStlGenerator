@@ -1,6 +1,6 @@
-﻿using LitophaneStlGenerator.Enums;
+﻿using LithophaneStlGenerator.Enums;
 
-namespace LitophaneStlGenerator;
+namespace LithophaneStlGenerator;
 
 public static class ImageProcessor
 {

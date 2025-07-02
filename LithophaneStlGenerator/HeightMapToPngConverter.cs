@@ -1,4 +1,4 @@
-﻿namespace LitophaneStlGenerator;
+﻿namespace LithophaneStlGenerator;
 
 public class HeightMapToPngConverter
 {

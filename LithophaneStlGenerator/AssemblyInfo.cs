@@ -2,10 +2,10 @@
 global using System.IO;
 global using System.Numerics;
 global using System.Text;
-global using LitophaneStlGenerator.Helpers;
+global using LithophaneStlGenerator.Helpers;
 global using SixLabors.ImageSharp;
 global using SixLabors.ImageSharp.PixelFormats;
 global using SixLabors.ImageSharp.Processing;
 global using SixLabors.ImageSharp.Processing.Processors.Transforms;
-global using LitophaneStlGenerator.Enums;
-global using LitophaneStlGenerator.HeightMapToMeshConverters;
+global using LithophaneStlGenerator.Enums;
+global using LithophaneStlGenerator.HeightMapToMeshConverters;

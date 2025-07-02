@@ -1,9 +1,9 @@
-﻿namespace LitophaneStlGenerator.HeightMapToMeshConverters;
+﻿namespace LithophaneStlGenerator.HeightMapToMeshConverters;
 
-public class CubicHeightMapToMeshConverter : IHeightMapToMesh
+public class ContinuousSurfaceHeightMapToMeshConverter : IHeightMapToMesh
 {
     /// <summary>
-    /// Převádí height mapu na mesh s kvádry a optimalizuje základnu a boky.
+    ///     Převádí height mapu na mesh s kontinuální plochou.
     /// </summary>
     /// <param name="heightMap">Height mapa.</param>
     /// <param name="finalWidthMM">Šířka výsledného modelu v mm.</param>
@@ -17,24 +17,19 @@ public class CubicHeightMapToMeshConverter : IHeightMapToMesh
         double scaleX = (double)finalWidthMM / width;
         double scaleY = (double)finalHeightMM / height;
 
-        Mesh mesh = new Mesh();
+        var mesh = new Mesh();
 
-        for (int y = 0; y < height; y++)
+        for (var y = 0; y < height - 1; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (var x = 0; x < width - 1; x++)
             {
-                double zHeight = heightMap[y, x];
-                Vector3 v0 = new Vector3((float)(y * scaleY), (float)(x * scaleX), 0f);
-                Vector3 v1 = new Vector3((float)(y * scaleY), (float)((x + 1) * scaleX), 0f);
-                Vector3 v2 = new Vector3((float)((y + 1) * scaleY), (float)((x + 1) * scaleX), 0f);
-                Vector3 v3 = new Vector3((float)((y + 1) * scaleY), (float)(x * scaleX), 0f);
+                // Otočení bodů při vytváření meshe
+                var v0 = new Vector3((float)(y * scaleY), (float)(x * scaleX), (float)heightMap[y, x]);
+                var v1 = new Vector3((float)(y * scaleY), (float)((x + 1) * scaleX), (float)heightMap[y, x + 1]);
+                var v2 = new Vector3((float)((y + 1) * scaleY), (float)((x + 1) * scaleX), (float)heightMap[y + 1, x + 1]);
+                var v3 = new Vector3((float)((y + 1) * scaleY), (float)(x * scaleX), (float)heightMap[y + 1, x]);
 
-                Vector3 v4 = v0 + new Vector3(0, 0, (float)zHeight);
-                Vector3 v5 = v1 + new Vector3(0, 0, (float)zHeight);
-                Vector3 v6 = v2 + new Vector3(0, 0, (float)zHeight);
-                Vector3 v7 = v3 + new Vector3(0, 0, (float)zHeight);
-
-                AddCubeFaces(mesh, v0, v1, v2, v3, v4, v5, v6, v7);
+                AddFace(mesh, v0, v1, v2, v3);
             }
         }
 
@@ -46,25 +41,7 @@ public class CubicHeightMapToMeshConverter : IHeightMapToMesh
     }
 
     /// <summary>
-    /// Přidá základnu modelu do meshe.
-    /// </summary>
-    /// <param name="mesh">Mesh.</param>
-    /// <param name="width">Šířka height mapy.</param>
-    /// <param name="height">Výška height mapy.</param>
-    /// <param name="scaleX">Škálování osy X.</param>
-    /// <param name="scaleY">Škálování osy Y.</param>
-    private void WriteBase(Mesh mesh, int width, int height, double scaleX, double scaleY)
-    {
-        var v0 = new Vector3(0f, 0f, 0f);
-        var v1 = new Vector3(0f, (float)((width - 1) * scaleX), 0f);
-        var v2 = new Vector3((float)((height - 1) * scaleY), (float)((width - 1) * scaleX), 0f);
-        var v3 = new Vector3((float)((height - 1) * scaleY), 0f, 0f);
-
-        AddFace(mesh, v0, v1, v2, v3);
-    }
-
-    /// <summary>
-    /// Přidá strany modelu do meshe.
+    ///     Přidá strany modelu do meshe.
     /// </summary>
     /// <param name="mesh">Mesh.</param>
     /// <param name="heightMap">Height mapa.</param>
@@ -117,40 +94,25 @@ public class CubicHeightMapToMeshConverter : IHeightMapToMesh
     }
 
     /// <summary>
-    /// Přidá kvádr do meshe.
+    ///     Přidá základnu modelu do meshe.
     /// </summary>
-    private void AddCubeFaces(Mesh mesh, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4, Vector3 v5, Vector3 v6, Vector3 v7)
+    /// <param name="mesh">Mesh.</param>
+    /// <param name="width">Šířka height mapy.</param>
+    /// <param="height">Výška height mapy.</param>
+    /// <param name="scaleX">Škálování osy X.</param>
+    /// <param name="scaleY">Škálování osy Y.</param>
+    private void WriteBase(Mesh mesh, int width, int height, double scaleX, double scaleY)
     {
-        // Top face
-        AddFace(mesh, v4, v5, v6, v7);
+        var v0 = new Vector3(0f, 0f, 0f);
+        var v1 = new Vector3(0f, (float)((width - 1) * scaleX), 0f);
+        var v2 = new Vector3((float)((height - 1) * scaleY), (float)((width - 1) * scaleX), 0f);
+        var v3 = new Vector3((float)((height - 1) * scaleY), 0f, 0f);
 
-        // Bottom face is handled by WriteBase
-        // AddFace(mesh, v0, v1, v2, v3);
-
-        // Front face
-        AddFace(mesh, v0, v1, v5, v4);
-
-        // Back face
-        AddFace(mesh, v3, v2, v6, v7);
-
-        // Left face
-        AddFace(mesh, v0, v3, v7, v4);
-
-        // Right face
-        AddFace(mesh, v1, v2, v6, v5);
+        AddFace(mesh, v0, v1, v2, v3);
     }
 
     /// <summary>
-    /// Přidá čtyři vrcholy jako dvě trojúhelníkové plochy do meshe.
-    /// </summary>
-    private void AddFace(Mesh mesh, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3)
-    {
-        mesh.AddTriangle(v0, v1, v2);
-        mesh.AddTriangle(v0, v2, v3);
-    }
-
-    /// <summary>
-    /// Přidá jednu stranu modelu do meshe.
+    ///     Přidá jednu stranu modelu do meshe.
     /// </summary>
     private void AddSide(Mesh mesh, double x0, double y0, double z0, double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3)
     {
@@ -160,5 +122,14 @@ public class CubicHeightMapToMeshConverter : IHeightMapToMesh
         var v3 = new Vector3((float)x3, (float)y3, (float)z3);
 
         AddFace(mesh, v0, v1, v2, v3);
+    }
+
+    /// <summary>
+    ///     Přidá čtyři vrcholy jako dvě trojúhelníkové plochy do meshe.
+    /// </summary>
+    private void AddFace(Mesh mesh, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3)
+    {
+        mesh.AddTriangle(v0, v1, v2);
+        mesh.AddTriangle(v0, v2, v3);
     }
 }

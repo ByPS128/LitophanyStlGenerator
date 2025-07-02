@@ -1,4 +1,4 @@
-﻿namespace LitophaneStlGenerator.HeightMapToMeshConverters;
+﻿namespace LithophaneStlGenerator.HeightMapToMeshConverters;
 
 public class HeightMapToMeshConverter : IHeightMapToMesh
 {
