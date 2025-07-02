@@ -1,4 +1,4 @@
-﻿namespace LitophanyStlGenerator;
+﻿namespace LitophaneStlGenerator;
 
 public static class HeightMapGenerator
 {

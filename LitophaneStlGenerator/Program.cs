@@ -1,4 +1,8 @@
-﻿namespace LitophanyStlGenerator;
+﻿using LitophaneStlGenerator.Enums;
+using LitophaneStlGenerator.HeightMapToMeshConverters;
+using LitophaneStlGenerator.Helpers;
+
+namespace LitophaneStlGenerator;
 
 internal class Program
 {
@@ -79,7 +83,7 @@ internal class Program
             // Export meše do STL souboru
             var stlWriter = new StlWriter();
             stlWriter.AddOrReplaceHeader("author", "ByPS128");
-            stlWriter.AddOrReplaceHeader("github", "https://github.com/ByPS128/LitophanyStlGenerator");
+            stlWriter.AddOrReplaceHeader("github", "https://github.com/ByPS128/LitophaneStlGenerator");
             stlWriter.SaveToFile(mesh, stlFileName);
 
             // Uložení height mapy do PNG souboru
