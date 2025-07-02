@@ -22,9 +22,9 @@ public class HeightMapToPngConverter
                 for (var x = 0; x < width; x++)
                 {
                     double heightValue = heightMap[y, x];
-                    var pixelValue = (byte) (255 * (heightValue - minHeight) / (maxHeight - minHeight));
+                    var pixelValue = (byte)(255 * (heightValue - minHeight) / (maxHeight - minHeight));
                     pixelValue = (byte)(255 - pixelValue); // Invertování barev
-                    image[/*width - 1 -*/ x, y] = new L8(pixelValue); // flip
+                    image[ /*width - 1 -*/ x, y] = new L8(pixelValue); // flip
                 }
             }
 

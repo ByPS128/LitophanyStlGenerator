@@ -1,7 +1,6 @@
-﻿namespace LitophanyStlGenerator
+﻿namespace LitophanyStlGenerator;
+
+public interface IStlExporter
 {
-    public interface IStlExporter
-    {
-        void SaveAsSTL(double[,] heightMap, int finalWidthMM, int finalHeightMM, string filename, int resolution);
-    }
+    void SaveToFile(double[,] heightMap, int finalWidthMM, int finalHeightMM, string filename, int resolution);
 }

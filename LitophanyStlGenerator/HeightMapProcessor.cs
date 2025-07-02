@@ -37,9 +37,9 @@ public static class HeightMapProcessor
     {
         int width = heightMap.GetLength(1);
         int height = heightMap.GetLength(0);
-        var smoothedHeightMap = (double[,]) heightMap.Clone();
+        var smoothedHeightMap = (double[,])heightMap.Clone();
 
-        var kernelRadius = (int) Math.Ceiling(2 * sigma);
+        var kernelRadius = (int)Math.Ceiling(2 * sigma);
         double[,] kernel = CreateGaussianKernel(sigma, kernelRadius);
 
         for (var y = 0; y < height; y++)
@@ -113,7 +113,7 @@ public static class HeightMapProcessor
     {
         int width = heightMap.GetLength(1);
         int height = heightMap.GetLength(0);
-        var smoothedHeightMap = (double[,]) heightMap.Clone();
+        var smoothedHeightMap = (double[,])heightMap.Clone();
         int radius = windowSize / 2;
 
         for (var y = 0; y < height; y++)
@@ -152,8 +152,8 @@ public static class HeightMapProcessor
     {
         int width = heightMap.GetLength(1);
         int height = heightMap.GetLength(0);
-        var smoothedHeightMap = (double[,]) heightMap.Clone();
-        var radius = (int) Math.Ceiling(2 * sigmaSpatial);
+        var smoothedHeightMap = (double[,])heightMap.Clone();
+        var radius = (int)Math.Ceiling(2 * sigmaSpatial);
         double twoSigmaSpatialSquare = 2 * sigmaSpatial * sigmaSpatial;
         double twoSigmaRangeSquare = 2 * sigmaRange * sigmaRange;
 

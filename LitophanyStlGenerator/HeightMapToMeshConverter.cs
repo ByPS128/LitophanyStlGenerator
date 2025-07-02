@@ -6,8 +6,8 @@ public class HeightMapToMeshConverter : IHeightMapToMesh
     {
         int width = heightMap.GetLength(1);
         int height = heightMap.GetLength(0);
-        double scaleX = (double) finalWidthMM / width;
-        double scaleY = (double) finalHeightMM / height;
+        double scaleX = (double)finalWidthMM / width;
+        double scaleY = (double)finalHeightMM / height;
 
         var mesh = new Mesh();
 
@@ -15,7 +15,7 @@ public class HeightMapToMeshConverter : IHeightMapToMesh
         {
             for (var x = 0; x < width; x++)
             {
-                mesh.Vertices.Add(new Vector3((float) (x * scaleX), (float) (y * scaleY), (float) heightMap[y, x]));
+                mesh.Vertices.Add(new Vector3((float)(x * scaleX), (float)(y * scaleY), (float)heightMap[y, x]));
             }
         }
 
