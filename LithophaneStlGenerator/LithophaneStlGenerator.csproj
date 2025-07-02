@@ -16,7 +16,6 @@
 
     <ItemGroup>
       <Folder Include="demo-photos\" />
-      <Folder Include="Templates\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,6 +32,9 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Templates\fdm-0.4mm-BilateralFilter-ContinuousSurface.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="Templates\fdm-0.4mm-BilateralFilter-Cubic.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

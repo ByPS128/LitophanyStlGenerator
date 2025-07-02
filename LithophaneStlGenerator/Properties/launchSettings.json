@@ -6,9 +6,9 @@
       "commandName": "Project",
       "commandLineArgs": "demo-photos\\IMG_9325.JPG templates\\fdm-0.4mm-BilateralFilter-ContinuousSurface.json c:\\temp\\"
     },
-    "Bilateral Cubic": {
+    "FDM 0.4mm Bilateral Cubic": {
       "commandName": "Project",
-      "commandLineArgs": "BilateralFilter Cubic"
+      "commandLineArgs": "demo-photos\\IMG_9325.JPG templates\\fdm-0.4mm-BilateralFilter-Cubic.json c:\\temp\\"
     },
     
     "GaussianBlur ContinuousSurface": {
