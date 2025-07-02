@@ -1,4 +1,6 @@
-﻿namespace LitophanyStlGenerator;
+﻿using LitophanyStlGenerator.Enums;
+
+namespace LitophanyStlGenerator;
 
 public static class ImageProcessor
 {

@@ -1,4 +1,4 @@
-﻿namespace LitophanyStlGenerator;
+﻿namespace LitophanyStlGenerator.HeightMapToMeshConverters;
 
 public interface IHeightMapToMesh
 {

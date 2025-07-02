@@ -25,7 +25,8 @@ internal class Program
             var minHeightMM = 0.6; // Zvětšení minimální výšky (např. 2 mm)
             var maxHeightMM = 3.6; // Snížení maximální výšky (např. 3 mm)
 
-            var resolution = 3; // Hustota bodů na centimetr
+            var resolution = 3; // Hustota bodů na milimetr
+            
             var sigma = 2.0; // Zvýšení sigmy pro Gaussian blur
             var threshold = 0.5; // Prahová hodnota pro vyhlazení kontrastu
             var windowSize = 3; // Velikost okna pro Median filter
@@ -46,28 +47,17 @@ internal class Program
             // Generování height mapy
             double[,] backHeightMap = HeightMapGenerator.GenerateHeightMap(backImage, minHeightMM, maxHeightMM, resolution);
 
-            // Předzpracování height mapy
-            double[,] resultHeightMap;
-
             // Výběr algoritmu pro vyhlazení
-            string smoothingAlgorithm = args.Length > 0 ? args[0] : "GaussianBlur";
-            smoothingAlgorithm = "BilateralFilter";
+            string smoothingAlgorithm = args.Length > 0 ? args[0] : "BilateralFilter";
 
-            switch (smoothingAlgorithm)
+            // Předzpracování height mapy vybraným algoritmem.
+            double[,] resultHeightMap = smoothingAlgorithm switch
             {
-                case "GaussianBlur":
-                    resultHeightMap = HeightMapProcessor.GaussianBlurSmooth(backHeightMap, sigma, threshold);
-                    break;
-                case "MedianFilter":
-                    resultHeightMap = HeightMapProcessor.MedianFilterSmooth(backHeightMap, windowSize);
-                    break;
-                case "BilateralFilter":
-                    resultHeightMap = HeightMapProcessor.BilateralFilterSmooth(backHeightMap, sigmaSpatial, sigmaRange);
-                    break;
-                default:
-                    resultHeightMap = backHeightMap;
-                    break;
-            }
+                "GaussianBlur" => HeightMapProcessors.GaussianBlurSmooth(backHeightMap, sigma, threshold),
+                "MedianFilter" => HeightMapProcessors.MedianFilterSmooth(backHeightMap, windowSize),
+                "BilateralFilter" => HeightMapProcessors.BilateralFilterSmooth(backHeightMap, sigmaSpatial, sigmaRange),
+                _ => backHeightMap
+            };
 
             // Uložení smoothed height mapy
             var pngConverter = new HeightMapToPngConverter();
@@ -76,21 +66,20 @@ internal class Program
             // Výběr typu konverze height mapy na mesh
             string meshConverterType = args.Length > 1 ? args[1] : "ContinuousSurface";
 
-            IHeightMapToMesh heightMapToMeshConverter;
-            if (meshConverterType == "ContinuousSurface")
+            IHeightMapToMesh heightMapToMeshConverter = meshConverterType switch
             {
-                heightMapToMeshConverter = new ContinuousSurfaceHeightMapToMeshConverter();
-            }
-            else
-            {
-                heightMapToMeshConverter = new CubicHeightMapToMeshConverter();
-            }
+                "ContinuousSurface" => new ContinuousSurfaceHeightMapToMeshConverter(),
+                "Cubic" => new CubicHeightMapToMeshConverter(),
+                _ => new HeightMapToMeshConverter()
+            };
 
             // Konverze height mapy na mesh
             Mesh mesh = heightMapToMeshConverter.Convert(resultHeightMap, finalWidthMM, finalHeightMM, resolution);
 
             // Export meše do STL souboru
             var stlWriter = new StlWriter();
+            stlWriter.AddOrReplaceHeader("author", "ByPS128");
+            stlWriter.AddOrReplaceHeader("github", "https://github.com/ByPS128/LitophanyStlGenerator");
             stlWriter.SaveToFile(mesh, stlFileName);
 
             // Uložení height mapy do PNG souboru

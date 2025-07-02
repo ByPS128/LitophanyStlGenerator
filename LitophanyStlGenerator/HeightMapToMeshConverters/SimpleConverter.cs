@@ -1,4 +1,4 @@
-﻿namespace LitophanyStlGenerator;
+﻿namespace LitophanyStlGenerator.HeightMapToMeshConverters;
 
 public class HeightMapToMeshConverter : IHeightMapToMesh
 {
@@ -9,7 +9,7 @@ public class HeightMapToMeshConverter : IHeightMapToMesh
         double scaleX = (double)finalWidthMM / width;
         double scaleY = (double)finalHeightMM / height;
 
-        var mesh = new Mesh();
+        Mesh mesh = new Mesh();
 
         for (var y = 0; y < height; y++)
         {

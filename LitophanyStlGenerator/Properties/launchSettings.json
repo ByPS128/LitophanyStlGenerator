@@ -1,0 +1,33 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    
+    "Bilateral ContinuousSurface": {
+      "commandName": "Project",
+      "commandLineArgs": "BilateralFilter ContinuousSurface"
+    },
+    "Bilateral Cubic": {
+      "commandName": "Project",
+      "commandLineArgs": "BilateralFilter Cubic"
+    },
+    
+    "GaussianBlur ContinuousSurface": {
+      "commandName": "Project",
+      "commandLineArgs": "GaussianBlur ContinuousSurface"
+    },
+    "GaussianBlur Cubic": {
+      "commandName": "Project",
+      "commandLineArgs": "GaussianBlur Cubic"
+    },
+    
+    "Median ContinuousSurface": {
+      "commandName": "Project",
+      "commandLineArgs": "MedianFilter ContinuousSurface"
+    },
+    "Median Cubic": {
+      "commandName": "Project",
+      "commandLineArgs": "MedianFilter Cubic"
+    }
+    
+  }
+}

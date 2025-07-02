@@ -1,6 +1,6 @@
 ﻿namespace LitophanyStlGenerator;
 
-public static class HeightMapProcessor
+public static class HeightMapProcessors
 {
     /// <summary>
     ///     Inverze hodnot height mapy (negativ).

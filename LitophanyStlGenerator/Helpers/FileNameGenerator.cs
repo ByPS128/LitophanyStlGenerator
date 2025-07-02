@@ -1,4 +1,4 @@
-﻿namespace LitophanyStlGenerator;
+﻿namespace LitophanyStlGenerator.Helpers;
 
 public static class FileNameGenerator
 {

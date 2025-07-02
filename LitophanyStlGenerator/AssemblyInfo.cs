@@ -7,3 +7,5 @@ global using SixLabors.ImageSharp;
 global using SixLabors.ImageSharp.PixelFormats;
 global using SixLabors.ImageSharp.Processing;
 global using SixLabors.ImageSharp.Processing.Processors.Transforms;
+global using LitophanyStlGenerator.Enums;
+global using LitophanyStlGenerator.HeightMapToMeshConverters;
