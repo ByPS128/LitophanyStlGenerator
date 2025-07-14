@@ -4,11 +4,11 @@
     
     "FDM 0.4mm Bilateral ContinuousSurface": {
       "commandName": "Project",
-      "commandLineArgs": "demo-photos\\IMG_9325.JPG templates\\fdm-0.4mm-BilateralFilter-ContinuousSurface.json c:\\temp\\"
+      "commandLineArgs": "demo-photos\\ai-generated-people.png templates\\fdm-0.4mm-BilateralFilter-ContinuousSurface.json c:\\temp\\"
     },
     "FDM 0.4mm Bilateral Cubic": {
       "commandName": "Project",
-      "commandLineArgs": "demo-photos\\IMG_9325.JPG templates\\fdm-0.4mm-BilateralFilter-Cubic.json c:\\temp\\"
+      "commandLineArgs": "demo-photos\\ai-generated-people.png templates\\fdm-0.4mm-BilateralFilter-Cubic.json c:\\temp\\"
     },
     
     "GaussianBlur ContinuousSurface": {

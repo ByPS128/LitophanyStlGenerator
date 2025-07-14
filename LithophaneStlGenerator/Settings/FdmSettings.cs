@@ -1,13 +1,17 @@
-﻿namespace LithophaneStlGenerator.Settings;
+﻿using LithophaneStlGenerator.Attributes;
+
+namespace LithophaneStlGenerator.Settings;
 
 // FDM specifické nastavení
 public class FdmSettings
 {
     [Required]
     [Range(0.1, 2.0)]
+    [AppEditable("Nozzle diameter in millimeters (0.1-2.0)")]
     public double NozzleDiameterMM { get; set; } = 0.4;
 
     [Range(0.5, 1.0)]
+    [AppEditable("Ratio of nozzle to pixel size (0.5-1.0)")]
     public double NozzleToPixelRatio { get; set; } = 0.8; // 80% trysky = pixel
 
     public int GetCalculatedResolution()

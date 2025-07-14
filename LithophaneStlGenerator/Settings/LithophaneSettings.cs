@@ -1,4 +1,5 @@
-﻿using LithophaneStlGenerator.Models.Enums;
+﻿using LithophaneStlGenerator.Attributes;
+using LithophaneStlGenerator.Models.Enums;
 
 namespace LithophaneStlGenerator.Settings;
 
@@ -8,23 +9,27 @@ public class LithophaneSettings
     // Model dimensions
     [Required]
     [Range(10, 1000)]
+    [AppEditable("Final width of the model in millimeters (10-1000)")]
     public int FinalWidthMM { get; set; } = 150;
 
-    [Required] 
+    [Required]
     [Range(10, 1000)]
+    [AppEditable("Final height of the model in millimeters (10-1000)")]
     public int FinalHeightMM { get; set; } = 100;
 
     [Required]
     [Range(0.1, 10.0)]
+    [AppEditable("Minimum height in millimeters for white areas (0.1-10.0)")]
     public double MinHeightMM { get; set; } = 0.6;
 
     [Required]
     [Range(0.2, 20.0)]
+    [AppEditable("Maximum height in millimeters for black areas (0.2-20.0)")]
     public double MaxHeightMM { get; set; } = 3.6;
 
     // Processing settings
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public PrintMode PrintMode { get; set; } = PrintMode.FDM;
+    public PrintMode PrintMode { get; set; } = PrintMode.FDM; // Not editable, core setting
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ResampleMethod ResampleMethod { get; set; } = ResampleMethod.Bicubic;
@@ -70,7 +75,7 @@ public class LithophaneSettings
         // Základní validace
         var context = new ValidationContext(this);
         var results = new List<ValidationResult>();
-        
+
         if (!Validator.TryValidateObject(this, context, results, true))
         {
             throw new ValidationException(string.Join("; ", results.Select(r => r.ErrorMessage)));

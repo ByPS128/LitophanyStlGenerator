@@ -10,58 +10,52 @@ internal class Program
     {
         try
         {
-            var config = ParseCommandLineArguments(args);
-            ProcessImage(config.InputImagePath, config.TemplatePath, config.OutputDirectory);
+            var parser = new CommandLineParser(args);
+            var (config, overrides) = parser.Parse();
+        
+            ProcessImage(config.InputImagePath, config.TemplatePath, config.OutputDirectory, overrides);
+        }
+        catch (Exception ex) when (ex.Message == "HELP_REQUESTED")
+        {
+            Console.WriteLine(CommandLineParser.GetHelpText());
+            ShowEditableOptions();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            ShowUsage();
+            Console.WriteLine();
+            Console.WriteLine("Use --help for usage information.");
+            Environment.Exit(1);
         }
     }
 
-    private static CommandLineConfig ParseCommandLineArguments(string[] args)
+    private static void ShowEditableOptions()
     {
-        if (args.Length < 2)
+        Console.WriteLine();
+        Console.WriteLine("Editable options for --override:");
+        var overrider = new SettingsOverrider();
+        var options = overrider.GetEditableOptions(typeof(LithophaneSettings));
+        foreach (var opt in options.OrderBy(o => o))
         {
-            throw new ArgumentException("Insufficient arguments");
+            Console.WriteLine($"  {opt}");
         }
-
-        string inputImagePath = args[0];
-        string templatePath = args[1];
-        string outputDirectory = args.Length > 2 ? args[2] : @"c:\temp\";
-
-        // Validace vstupního souboru
-        if (!File.Exists(inputImagePath))
-        {
-            throw new FileNotFoundException($"Input image not found: {inputImagePath}");
-        }
-
-        // Validace template
-        if (!File.Exists(templatePath))
-        {
-            throw new FileNotFoundException($"Template not found: {templatePath}");
-        }
-
-        // Vytvoř output adresář pokud neexistuje
-        Directory.CreateDirectory(outputDirectory);
-
-        return new CommandLineConfig
-        {
-            InputImagePath = Path.GetFullPath(inputImagePath),
-            TemplatePath = Path.GetFullPath(templatePath),
-            OutputDirectory = Path.GetFullPath(outputDirectory)
-        };
     }
 
-    private static void ProcessImage(string inputImagePath, string templatePath, string outputDirectory)
+    private static void ProcessImage(string inputImagePath, string templatePath, string outputDirectory, Dictionary<string, string> overrides)
     {
         // Načti template
         var settings = TemplateManager.LoadTemplate(templatePath);
         
+        // Aplikuj overrides
+        var overrider = new SettingsOverrider();
+        overrider.ApplyOverrides(settings, overrides);
+        
+        // Validace po overrides
+        settings.Validate();
+        
         // Vypiš shrnutí konfigurace
         PrintConfigurationSummary(settings, inputImagePath, outputDirectory);
-
+        
         // Generuj názvy výstupních souborů
         var outputFiles = GenerateOutputFilenames(inputImagePath, outputDirectory);
 
@@ -208,24 +202,5 @@ internal class Program
         Console.WriteLine($"  PNG (smoothed): {Path.GetFileName(files.SmoothedPngFileName)}");
         Console.WriteLine();
         Console.WriteLine($"Output directory: {Path.GetDirectoryName(files.StlFileName)}");
-    }
-
-    private static void ShowUsage()
-    {
-        Console.WriteLine();
-        Console.WriteLine("=== LITHOPHANE GENERATOR USAGE ===");
-        Console.WriteLine("LitophanyStlGenerator.exe <input-image> <template.json> [output-directory]");
-        Console.WriteLine();
-        Console.WriteLine("Arguments:");
-        Console.WriteLine("  input-image      Path to input image (jpg, png, etc.)");
-        Console.WriteLine("  template.json    Configuration template file");
-        Console.WriteLine("  output-directory Optional output directory (default: c:\\temp\\)");
-        Console.WriteLine();
-        Console.WriteLine("Examples:");
-        Console.WriteLine("  LitophanyStlGenerator.exe photo.jpg fdm-0.4mm.json");
-        Console.WriteLine("  LitophanyStlGenerator.exe ..\\photos\\portrait.png resin-hd.json c:\\output\\");
-        Console.WriteLine("  LitophanyStlGenerator.exe c:\\images\\landscape.jpg fdm-0.2mm.json");
-        Console.WriteLine();
-        Console.WriteLine("Available templates will be created on first run in ./templates/ directory");
     }
 }

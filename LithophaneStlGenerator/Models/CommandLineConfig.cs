@@ -1,6 +1,6 @@
 ﻿namespace LithophaneStlGenerator.Models;
 
-internal class CommandLineConfig
+public class CommandLineConfig
 {
     public string InputImagePath { get; set; } = string.Empty;
     public string TemplatePath { get; set; } = string.Empty;

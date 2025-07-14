@@ -10,33 +10,31 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
-      <PackageReference Include="Stl" Version="6.8.11" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4"/>
+        <PackageReference Include="Stl" Version="6.8.11"/>
+        <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="demo-photos\" />
+        <Folder Include="demo-photos\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="demo-photos\back_image.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="demo-photos\front_image.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="demo-photos\IMG_9325.JPG">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="demo-photos\heart_image.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Templates\fdm-0.4mm-BilateralFilter-ContinuousSurface.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Templates\fdm-0.4mm-BilateralFilter-Cubic.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Update="demo-photos\heart_image.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="Templates\fdm-0.4mm-BilateralFilter-ContinuousSurface.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="Templates\fdm-0.4mm-BilateralFilter-Cubic.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="demo-photos\ai-generated-lions.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="demo-photos\ai-generated-people.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>
