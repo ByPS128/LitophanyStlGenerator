@@ -21,9 +21,10 @@ import numpy as np
 from PIL import Image
 from engine import Engine
 from layers import LayerStore
+from project_config import defaults
+from remote_images import download_image
 
 ROOT = Path(__file__).resolve().parent
-SOURCES = ROOT.parent / 'LithophaneStlGenerator' / 'Sources'
 
 
 def find_blender():
@@ -75,10 +76,14 @@ class State:
 
     def open(self, path, name):
         engine = Engine(path)
+        source_bytes = Path(path).read_bytes()
+        demo = defaults()['demo_image']
+        store = LayerStore()
+        layer = store.add(demo.read_bytes(), demo.name, engine.radius)
         self.engine, self.name = engine, name
-        self.source_bytes = Path(path).read_bytes()
-        self.store = LayerStore()
-        self.motif = self.image_name = None
+        self.source_bytes, self.store = source_bytes, store
+        self.motif = store.images[layer['image_id']]['motif']
+        self.image_name = demo.name
         self.restored_scene = self.restored_limits = None
         self.invalidate()
 
@@ -222,10 +227,8 @@ class Handler(BaseHTTPRequestHandler):
     def post(self):
         state = self.state
         if self.path == '/api/demo':
-            state.open(SOURCES / 'moon-globe-mk2.stl', 'moon-globe-mk2.stl')
-            layer=state.store.add((SOURCES/'dragon.png').read_bytes(),'dragon.png',state.engine.radius)
-            state.motif = state.store.images[layer['image_id']]['motif']
-            state.image_name = 'dragon.png'
+            path = defaults()['default_stl']
+            state.open(path, path.name)
             return self.json(state.info())
         if self.path == '/api/stl':
             path = Path(state.workspace.name) / 'input.stl'
@@ -236,10 +239,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/api/motif':
             from urllib.parse import unquote
             name=unquote(self.headers.get('X-File-Name','motiv.png'))
-            layer=state.store.add(self.body(24*1024**2),name,state.engine.radius if state.engine else 100)
+            if state.engine is None:
+                raise ValueError('Nejdřív načti STL.')
+            raw = self.body(24*1024**2)
+            target = self.headers.get('X-Layer-Id')
+            layer = state.store.replace(target, raw, name) if target else state.store.add(raw, name, state.engine.radius)
             state.motif, state.image_name = state.store.images[layer['image_id']]['motif'], name
             state.invalidate()
-            return self.json(state.info())
+            return self.json({**state.info(), 'selected_layer_id': layer['id']})
         if self.path == '/api/project-open':
             store,model,data=LayerStore.read(self.body(300*1024**2))
             path=Path(state.workspace.name)/'project.stl'
@@ -257,6 +264,13 @@ class Handler(BaseHTTPRequestHandler):
         data = json.loads(self.body(1024 * 1024))
         if state.engine is None:
             raise ValueError('Nejdřív načti STL.')
+        if self.path == '/api/motif-url':
+            raw, name = download_image(data.get('url'))
+            target = data.get('layer_id')
+            layer = state.store.replace(target, raw, name) if target else state.store.add(raw, name, state.engine.radius)
+            state.motif, state.image_name = state.store.images[layer['image_id']]['motif'], name
+            state.invalidate()
+            return self.json({**state.info(), 'selected_layer_id': layer['id']})
         if self.path == '/api/image-preview':
             image_id=data['image_id']
             if image_id not in state.store.images:
@@ -331,16 +345,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--demo', action='store_true')
+    parser.add_argument('--demo-if-available', action='store_true')
     parser.add_argument('--no-browser', action='store_true')
     args = parser.parse_args()
     if not (ROOT / 'web/dist/index.html').exists():
         parser.error('Nejdřív sestav rozhraní: cd spherical/web; npm install; npm run build')
     state = State()
-    if args.demo:
+    configured = defaults()
+    if args.demo or (args.demo_if_available and all(path.is_file() for path in configured.values())):
         print('Načítám Měsíc a měřím tloušťku…', flush=True)
-        state.open(SOURCES / 'moon-globe-mk2.stl', 'moon-globe-mk2.stl')
-        layer=state.store.add((SOURCES/'dragon.png').read_bytes(),'dragon.png',state.engine.radius)
-        state.motif, state.image_name = state.store.images[layer['image_id']]['motif'], 'dragon.png'
+        state.open(configured['default_stl'], configured['default_stl'].name)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     server.daemon_threads = True
     server.state = state

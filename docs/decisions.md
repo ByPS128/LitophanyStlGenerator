@@ -1,5 +1,19 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Výchozí motiv a výměna zdrojů vrstev
+
+**Co:** Nový projekt a import STL vytvářejí jednu konfigurovatelnou ukázkovou
+vrstvu. Přidání a výměna obrázku podporují soubor z počítače i veřejnou URL.
+
+**Jak:** `spherical/config.json` určuje výchozí model a obrázek. Výměna zdroje
+ponechá metadata vrstvy a oddělí nový zdroj od duplikovaných vrstev. Stahování
+omezuje velikost a kontroluje veřejnou cílovou IP při každém přesměrování.
+Uložený `.luna` nadále obsahuje skutečné zdrojové bajty, otevření nevyžaduje URL
+a nepřidává ukázkovou vrstvu ani do projektu s nulovým počtem obrázků.
+
+**Odkazy:** [Úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1),
+[PR 2](https://github.com/ByPS128/LitophanyStlGenerator/pull/2).
+
 ## 2026-11-08 — Místní kulový editor Luna
 
 **Co:** Přidán samostatný editor měsíční skořepiny s vrstvami PNG, skutečnou 3D

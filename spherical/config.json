@@ -1,0 +1,4 @@
+{
+  "default_stl": "../LithophaneStlGenerator/Sources/moon-globe-mk2.stl",
+  "demo_image": "../LithophaneStlGenerator/Sources/dragon.png"
+}

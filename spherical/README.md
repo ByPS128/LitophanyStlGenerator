@@ -23,8 +23,14 @@ Otevře se `http://127.0.0.1:8765/`. Terminál nech otevřený; Ctrl+C ukončí 
 `-Empty` spustí prázdný editor a `-Port 8766` změní port. Server přijímá jen
 místní požadavky ze stejného původu. Soubory se neposílají do externí služby.
 
-Pokud existují `LithophaneStlGenerator/Sources/moon-globe-mk2.stl` a `dragon.png`,
-načtou se při spuštění automaticky. Jinak lze soubory vybrat v editoru.
+Výchozí STL a ukázkový obrázek určuje `spherical/config.json`:
+`default_stl` a `demo_image` jsou cesty relativní k tomuto konfiguračnímu souboru.
+Pokud oba soubory existují, načtou se při spuštění automaticky. Výchozím motivem
+je `dragon.png`; pro jiný motiv stačí změnit `demo_image`. Konfigurace se čte
+znovu při založení projektu, není nutný restart.
+„Nový projekt“ i načtení vlastního STL vytvoří právě jednu ukázkovou vrstvu.
+Chybějící nebo poškozený ukázkový obrázek zabrání založení projektu a zachová
+dosavadní projekt. Otevření uloženého projektu žádné ukázkové vrstvy nepřidává.
 Uživatelské vstupy, virtuální prostředí, sestavené rozhraní a výstupy jsou
 ignorovány Gitem; nejsou součástí instalace z čistého klonu.
 
@@ -63,6 +69,14 @@ na originální obrázek, název, viditelnost, kotvu, rozměry, natočení, domi
 a parametry zpracování obrázku. V seznamu je nejvyšší vrstva nahoře; výpočet
 skládá vrstvy odspodu. Lze je přejmenovat, duplikovat, skrýt, odebrat a přesouvat.
 Duplikace sdílí zdrojové bajty, ale nastavení obou vrstev jsou nezávislá.
+Obrázky lze přidávat z počítače nebo přímou veřejnou HTTP(S) adresou (do 24 MB).
+Vybranému motivu lze vyměnit obrázek stejnými dvěma způsoby: zůstane název vrstvy,
+její pořadí, poloha, rozměry, dominance i úpravy obrázku. Duplikovaných vrstev
+se výměna nedotkne. Vrstva se smí odebrat i jako poslední; projekt bez obrázků
+je platný a při opětovném otevření zůstane prázdný.
+Adresy s přihlášením nebo v místní síti nejsou podporovány. Přesměrování se
+kontrolují také. Stažené zdrojové bajty se přibalí do projektu; při otevření
+se už URL nekontaktuje. Samotné načítání z URL samozřejmě vyžaduje internet.
 Počet vrstev nemá pevný limit ve vykreslovacím programu; praktický limit tvoří
 paměť, čas výpočtu a limit projektu (400 MB po rozbalení, 2000 položek).
 
@@ -92,6 +106,10 @@ Změny se po krátkém odkladu promítnou do náhledu obrázku a společné mapy
 na kouli. Kamera zůstává interaktivní během přepočtu mapy.
 
 Projekt formátu 2 obsahuje:
+
+Prohlížeč stáhne jediný soubor `.luna`, tedy ZIP s vlastní příponou. Nevyžaduje
+povolení ukládat více souborů ani přístup k celé složce. Umístění staženého souboru
+řídí nastavení prohlížeče. Archiv lze ručně rozbalit běžným nástrojem pro ZIP.
 
 ```text
 project.json                  metadata a pořadí vrstev, světlo, meze, kamera

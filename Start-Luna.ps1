@@ -21,6 +21,5 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Sestavení rozhraní selhalo.' }
 } finally { Pop-Location }
 $serverArgs = @('-X', 'utf8', 'spherical/server.py', '--port', "$Port")
-if (!$Empty -and (Test-Path -LiteralPath 'LithophaneStlGenerator/Sources/moon-globe-mk2.stl') -and
-    (Test-Path -LiteralPath 'LithophaneStlGenerator/Sources/dragon.png')) { $serverArgs += '--demo' }
+if (!$Empty) { $serverArgs += '--demo-if-available' }
 & $pythonPath @serverArgs

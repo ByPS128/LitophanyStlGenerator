@@ -40,6 +40,17 @@ class LayerStore:
             self.cache[key]=process(self.images[image_id]['raw'],config)
         return self.cache[key]
 
+    def replace(self, layer_id, raw, name):
+        layer = next((item for item in self.layers if item['id'] == layer_id), None)
+        if layer is None:
+            raise ValueError('Vybraná vrstva již neexistuje.')
+        # Validate independently before touching this store. Duplicates keep their source.
+        replacement = LayerStore()
+        added = replacement.add(raw, name)
+        self.images.update(replacement.images)
+        layer['image_id'] = added['image_id']
+        return layer
+
     def parse(self, data, radius):
         minimum, maximum = float(data['min_mm']), float(data['max_mm'])
         common = Placement.read(dict(anchor=[1,0,0],width_mm=radius,height_mm=radius,angle_deg=0,

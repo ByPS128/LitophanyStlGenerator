@@ -8,8 +8,8 @@ import './style.css';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><span class="local">● Místní pracovní prostor</span></header>
 <main><section class="workspace">
-  <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Načíst Měsíc + draka</button></div>
-  <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo otevři dodaný Měsíc s drakem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
+  <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Nový projekt</button></div>
+  <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo založ nový projekt s ukázkovým motivem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
   <div class="toolbar"><div class="segmented" id="modes"><button data-mode="0">Povrch</button><button data-mode="1" class="selected">Podsvícení</button><button data-mode="2">Tloušťka</button></div><div class="tools"><button id="move">Umístit motiv</button><button id="original">Původní model</button><button id="home" aria-label="Vrátit kameru">↺ Pohled</button></div></div>
   <div class="scene-foot"><span>Táhni pro otočení · Ctrl + klik umístí motiv · Shift při změně velikosti drží proporce</span><span id="anchor-label">Kotva —</span></div>
   <div class="notice"><span class="dot"></span><p id="status" role="status" aria-live="polite">Soubory i výpočty zůstávají na tomto počítači.</p></div>
@@ -17,7 +17,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <section><div class="section-title"><span>01</span><h2>Model a motiv</h2></div>
     <button id="open-stl" class="file-button"><span>◇ Měsíční skořepina</span><small id="stl-name">Načíst STL ↗</small></button><input type="file" id="stl" accept=".stl" hidden>
     <button id="open-motif" class="file-button"><span>＋ Přidat vrstvu obrázku</span><small id="motif-name">PNG, JPG nebo WebP ↗</small></button><input type="file" id="motif" accept="image/png,image/jpeg,image/webp" hidden>
-    <div id="layer-list" class="layer-list" aria-label="Vrstvy motivů"></div>
+    <button id="add-url" class="quiet wide">＋ Přidat obrázek z URL</button><div class="fields"><button id="replace-file">Změnit obrázek z počítače</button><button id="replace-url">Změnit obrázek z URL</button></div><div id="layer-list" class="layer-list" aria-label="Vrstvy motivů"></div>
     <label class="layer-name">Název vybrané vrstvy<input id="layer-name" type="text" maxlength="250" placeholder="Vyber vrstvu"></label>
     <div class="layer-actions"><button id="layer-up" title="Posunout výš">↑</button><button id="layer-down" title="Posunout níž">↓</button><button id="layer-copy">Duplikovat</button><button id="layer-remove">Odebrat</button></div>
     <p class="hint">Průhlednost chrání původní povrch. Bílá ztenčuje stěnu, černá ji zesiluje.</p>
@@ -62,7 +62,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="fields"><button id="export" disabled>Uložit STL</button><button id="snapshot" disabled>Náhled PNG</button><button id="save" disabled>Uložit projekt</button><button id="restore">Otevřít projekt</button></div><input id="settings-file" type="file" accept=".luna,.zip" hidden>
     <button id="render" class="wide" disabled>Vykreslit v Blender Cycles</button><button id="bundle" class="quiet wide" disabled>Stáhnout scénu pro Blender ↗</button><p id="blender-info" class="hint">Zjišťuji dostupnost Blenderu…</p>
   </section>
-</aside></main><footer>LUNA / experimentální studio <span>STL geometrie · lokální zpracování · žádný účet</span></footer>`;
+</aside></main><dialog id="url-dialog"><form id="url-form"><h2 id="url-title">Obrázek z URL</h2><label>Přímý odkaz na obrázek<input id="image-url" type="url" required placeholder="https://…/dragon.png"></label><p>Veřejný obrázek do 24 MB. Stažený originál se uloží do projektu.</p><div class="fields"><button type="button" id="url-cancel">Zrušit</button><button type="submit">Načíst obrázek</button></div></form></dialog><footer>LUNA / experimentální studio <span>STL geometrie · lokální zpracování · žádný účet</span></footer>`;
 
 const el = <T extends HTMLElement = HTMLElement>(id:string) => document.getElementById(id) as T;
 const value = (id:string) => el<HTMLInputElement>(id).valueAsNumber;
@@ -108,7 +108,7 @@ renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 function status(text:string,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
 function buttons(){
   for(const id of ['open-stl','open-motif','demo','restore']) el<HTMLButtonElement>(id).disabled=busy;
-  el<HTMLButtonElement>('apply').disabled=busy||!model;
+  for(const id of ['apply','open-motif','add-url'])el<HTMLButtonElement>(id).disabled=busy||!model;
   for(const id of ['export','bundle','render'])el<HTMLButtonElement>(id).disabled=busy||!resultId||!exportable;
   for(const id of ['save','snapshot'])el<HTMLButtonElement>(id).disabled=busy||!model;
   document.querySelectorAll<HTMLInputElement>('aside input:not([type=file])').forEach(input=>input.disabled=busy);
@@ -117,7 +117,7 @@ function buttons(){
   const index=layers.findIndex(l=>l.id===selectedId);
   el<HTMLButtonElement>('layer-up').disabled=busy||index<0||index===layers.length-1;
   el<HTMLButtonElement>('layer-down').disabled=busy||index<=0;
-  for(const id of ['layer-copy','layer-remove'])el<HTMLButtonElement>(id).disabled=busy||index<0;
+  for(const id of ['layer-copy','layer-remove','replace-file','replace-url'])el<HTMLButtonElement>(id).disabled=busy||index<0;
   document.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLButtonElement>('#image-editor input,#image-editor select,#image-editor button').forEach(control=>control.disabled=busy||!selectedId);
   orbit.enabled=!busy&&!moving;
 }
@@ -289,8 +289,8 @@ async function loadInfo(info:any,reset:boolean){
     el('empty').hidden=true;el('model-info').textContent=`${model.name} · Ø ${fmt(model.radius*2,1)} mm · ${fmt(model.triangles,0)} trojúhelníků`;
     home();
   }
-  selectLayer(layers.at(-1)?.id??null,false);
-  if(info.restored_scene){const light=info.restored_scene;setValue('brightness',light.brightness*100);setValue('kelvin',light.kelvin);setValue('attenuation',light.attenuation);['led-x','led-y','led-z'].forEach((id,i)=>setValue(id,light.light[i]));camera.position.fromArray(light.camera);orbit.target.set(0,0,0);orbit.update();}
+  selectLayer(info.selected_layer_id??layers.at(-1)?.id??null,false);
+  if(reset&&info.restored_scene){const light=info.restored_scene;setValue('brightness',light.brightness*100);setValue('kelvin',light.kelvin);setValue('attenuation',light.attenuation);['led-x','led-y','led-z'].forEach((id,i)=>setValue(id,light.light[i]));camera.position.fromArray(light.camera);orbit.target.set(0,0,0);orbit.update();}
   previewRevision++;await refreshComposite(true);
   update();buttons();
 }
@@ -303,13 +303,32 @@ for(const id of ['width','height','angle','strength','minimum','maximum'])el(id)
   invalidate();update();
 });
 for(const id of ['brightness','kelvin','attenuation','led-x','led-y','led-z','guides'])el(id).addEventListener('input',update);
-el('demo').onclick=()=>work('Načítám STL a měřím původní stěnu…',async()=>{await loadInfo(await(await request('/api/demo',{})).json(),true);status('Měsíc a drak jsou připravení. Umísti motiv a nastav jeho dominanci.');});
+el('demo').onclick=()=>work('Načítám STL a měřím původní stěnu…',async()=>{await loadInfo(await(await request('/api/demo',{})).json(),true);status('Nový projekt s ukázkovou vrstvou je připravený. Obrázek můžeš změnit nebo vrstvu odebrat.');});
+let replacementTarget:string|null=null;
+el('replace-file').onclick=()=>{replacementTarget=selectedId;el<HTMLInputElement>('motif').click();};
+let urlTarget:string|null=null;
+const urlDialog=el<HTMLDialogElement>('url-dialog');
+for(const id of ['add-url','replace-url'])el(id).onclick=()=>{
+  urlTarget=id==='replace-url'?selectedId:null;
+  el('url-title').textContent=urlTarget?'Změnit obrázek vybrané vrstvy':'Přidat vrstvu z URL';
+  el<HTMLInputElement>('image-url').value='';urlDialog.showModal();
+};
+el('url-cancel').onclick=()=>urlDialog.close();
+el('url-form').onsubmit=event=>{
+  event.preventDefault();const url=el<HTMLInputElement>('image-url').value.trim(),target=urlTarget;urlDialog.close();
+  void work('Stahuji a zpracovávám obrázek…',async()=>{
+    invalidate(false);
+    await request('/api/layers',composition());
+    const info=await(await request('/api/motif-url',{url,layer_id:target})).json();
+    invalidate(false);await loadInfo(info,false);status('Obrázek načten. Originál bude součástí uloženého projektu.');
+  });
+};
 for(const id of ['stl','motif']){
-  el('open-'+id).onclick=()=>el<HTMLInputElement>(id).click();
+  el('open-'+id).onclick=()=>{replacementTarget=null;el<HTMLInputElement>(id).click();};
   el(id).onchange=()=>work(id==='stl'?'Měřím skořepinu…':'Načítám motiv…',async()=>{
     const field=el<HTMLInputElement>(id),file=field.files?.[0];if(!file)return;
-    if(id==='motif'&&model)await request('/api/layers',composition());
-    const response=await fetch('/api/'+id,{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name)},body:file});field.value='';
+    if(id==='motif'&&model){invalidate(false);await request('/api/layers',composition());}
+    const response=await fetch('/api/'+id,{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),...(id==='motif'&&replacementTarget?{'X-Layer-Id':replacementTarget}:{})},body:file});field.value='';
     if(!response.ok)throw new Error((await response.json()).error);
     invalidate(false);await loadInfo(await response.json(),id==='stl');status('Soubor načten.');
   });
