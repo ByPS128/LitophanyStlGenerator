@@ -11,6 +11,8 @@ if ($Install) {
     & $pythonPath -m pip install -r spherical/requirements-dev.txt
     if ($LASTEXITCODE -ne 0) { throw 'Instalace Python závislostí selhala.' }
 }
+dotnet build FlatLithophaneBridge/FlatLithophaneBridge.csproj -c Release --verbosity minimal
+if ($LASTEXITCODE -ne 0) { throw 'Sestavení původního .NET jádra a adaptéru selhalo.' }
 Push-Location spherical/web
 try {
     if ($Install -or !(Test-Path -LiteralPath node_modules)) {

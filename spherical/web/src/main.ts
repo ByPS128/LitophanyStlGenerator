@@ -6,7 +6,7 @@ import {defaultImageSettings,hexColor,parseHex,type ImageSettings} from './image
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><span class="local">● Místní pracovní prostor</span></header>
+<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
 <main><section class="workspace">
   <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Nový projekt</button></div>
   <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo založ nový projekt s ukázkovým motivem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
@@ -59,7 +59,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <p class="hint">Průběžné prosvícení je aproximace. Útlum zkalibruj podle zkušebního výtisku a filamentu.</p>
   </section>
   <section><div class="section-title"><span>06</span><h2>Výstup a scéna</h2></div>
-    <div class="fields"><button id="export" disabled>Uložit STL</button><button id="snapshot" disabled>Náhled PNG</button><button id="save" disabled>Uložit projekt</button><button id="restore">Otevřít projekt</button></div><input id="settings-file" type="file" accept=".luna,.zip" hidden>
+    <div class="fields"><button id="export" disabled>Exportovat model pro tisk (.stl)</button><button id="snapshot" disabled>Náhled PNG</button><button id="save" disabled>Uložit projekt (.luna)</button><button id="restore">Otevřít projekt</button></div><input id="settings-file" type="file" accept=".luna,.zip" hidden>
+    <p class="hint">Projekt .luna uchová vrstvy a zdroje pro další úpravy. Export .stl je výsledný model pro tisk.</p>
     <button id="render" class="wide" disabled>Vykreslit v Blender Cycles</button><button id="bundle" class="quiet wide" disabled>Stáhnout scénu pro Blender ↗</button><p id="blender-info" class="hint">Zjišťuji dostupnost Blenderu…</p>
   </section>
 </aside></main><dialog id="url-dialog"><form id="url-form"><h2 id="url-title">Obrázek z URL</h2><label>Přímý odkaz na obrázek<input id="image-url" type="url" required placeholder="https://…/dragon.png"></label><p>Veřejný obrázek do 24 MB. Stažený originál se uloží do projektu.</p><div class="fields"><button type="button" id="url-cancel">Zrušit</button><button type="submit">Načíst obrázek</button></div></form></dialog><footer>LUNA / experimentální studio <span>STL geometrie · lokální zpracování · žádný účet</span></footer>`;
@@ -358,7 +359,12 @@ el('render').onclick=()=>work('Předávám scénu Blenderu…',async()=>{
   }catch(error){clearInterval(timer);renderPolling=false;status(String(error),true);}},3000);
 });
 el('snapshot').onclick=()=>{const visible=guide.visible;guide.visible=false;renderer.render(scene,camera);renderer.domElement.toBlob(blob=>{if(blob)download(blob,'luna-preview.png');});guide.visible=visible;};
-el('save').onclick=()=>work('Ukládám zdrojové STL, originály, upravená PNG a metadata…',async()=>{download(await(await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId})).blob(),'moon-project.luna');status('Projekt uložen včetně originálů, upravených PNG a metadat. Aktuální ověřené STL se přibalí, pokud je dostupné.');});
+el('save').onclick=()=>work('Ukládám zdrojové STL, originály, upravená PNG a metadata…',async()=>{
+  const response=await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId});
+  const included=response.headers.get('X-Luna-Result-Included')==='true';
+  download(await response.blob(),'moon-project.luna');
+  status(included?'Projekt uložen včetně aktuálního upraveného result.stl.':'Projekt uložen BEZ upraveného STL. Obsahuje zdroje a nastavení pro další úpravy. Pro přiložení výsledku nejdřív přepočítej a ověř model.',!included);
+});
 el('restore').onclick=()=>el<HTMLInputElement>('settings-file').click();
 el('settings-file').onchange=()=>work('Obnovuji celý projekt a měřím STL…',async()=>{
   const field=el<HTMLInputElement>('settings-file'),file=field.files?.[0];if(!file)return;field.value='';

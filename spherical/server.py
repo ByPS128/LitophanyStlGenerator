@@ -23,6 +23,7 @@ from engine import Engine
 from layers import LayerStore
 from project_config import defaults
 from remote_images import download_image
+from flat import handle as handle_flat
 
 ROOT = Path(__file__).resolve().parent
 
@@ -143,12 +144,14 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def reply(self, body, content_type='application/json', status=200):
+    def reply(self, body, content_type='application/json', status=200, headers=None):
         self.send_response(status)
         self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -173,6 +176,8 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def get(self):
+        if handle_flat(self):
+            return
         state = self.state
         if self.path.startswith('/api/source/'):
             image_id=self.path.removeprefix('/api/source/')
@@ -225,6 +230,8 @@ class Handler(BaseHTTPRequestHandler):
             self.json({'error': str(error)}, 400)
 
     def post(self):
+        if handle_flat(self):
+            return
         state = self.state
         if self.path == '/api/demo':
             path = defaults()['default_stl']
@@ -249,6 +256,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.json({**state.info(), 'selected_layer_id': layer['id']})
         if self.path == '/api/project-open':
             store,model,data=LayerStore.read(self.body(300*1024**2))
+            if data.get('kind') == 'flat':
+                raise ValueError('Plochý projekt otevři v editoru plochých litofánií.')
             path=Path(state.workspace.name)/'project.stl'
             path.write_bytes(model)
             engine=Engine(path)
@@ -300,7 +309,8 @@ class Handler(BaseHTTPRequestHandler):
                 state.engine.write(output,state.result)
                 result_bytes=output.read_bytes()
                 payload['validation']=state.result.stats
-            return self.reply(state.store.save(state.source_bytes,payload,result_bytes),'application/zip')
+            return self.reply(state.store.save(state.source_bytes,payload,result_bytes),'application/zip',
+                              headers={'X-Luna-Result-Included': 'true' if result_bytes is not None else 'false'})
         if self.path == '/api/apply':
             parsed,placement,clean=state.store.parse(data,state.engine.radius)
             result = state.engine.calculate_layers(parsed, placement)

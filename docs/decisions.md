@@ -1,5 +1,24 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Ploché litofánie s původním .NET jádrem
+
+**Co:** Přidán samostatný plochý editor s vrstvami, obrázky z počítače/URL,
+úpravami PNG, prosvícením, volitelným chráněným okrajem a projekty `.luna`.
+Tlačítka rozlišují rozpracovaný projekt od tiskového STL a uložení hlásí,
+zda výsledný model skutečně přibalilo.
+
+**Jak:** Nový `FlatLithophaneBridge` odkazuje na původní .NET projekt a volá jeho
+generování výšek, vyhlazování, spojitý převodník a zápis STL. Původní zdrojové
+soubory a CLI se nemění. Adaptér opravuje rozměry převzatého povrchu a uzavírá
+jej segmentovanými boky a základnou. Okraj se vynucuje po vyhlazení; natočené
+vrstvy se vejdou celé do obrazové plochy. Náhled při úpravách je zjednodušený,
+po přepočtu zobrazuje stejný povrch jako .NET export. Typ projektu odděluje
+plochou a kulovou kompozici. Automatické testy ověřily skutečné STL a původní
+CLI; vizuální ovládání blokovala chyba nástroje pro ovládání prohlížeče.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1).
+
 ## 2026-11-08 — Výchozí motiv a výměna zdrojů vrstev
 
 **Co:** Nový projekt a import STL vytvářejí jednu konfigurovatelnou ukázkovou

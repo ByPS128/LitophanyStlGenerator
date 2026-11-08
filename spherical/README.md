@@ -1,5 +1,8 @@
 # Luna — prostorový editor kulové litofánie
 
+Luna obsahuje také [plochý editor s původním .NET jádrem](../FlatLithophaneBridge/README.md),
+dostupný na `/flat.html`. Oba editory mají oddělené rozpracované projekty.
+
 Samostatná místní aplikace: Python/VTK měří a upravuje STL, TypeScript/Three.js
 zobrazuje skutečnou trojúhelníkovou síť v prohlížeči. Původní .NET generátor
 plochých litofánií zůstává samostatný. Geometrické pomocné funkce vycházejí
@@ -9,6 +12,8 @@ jasu, chrání nezasažené vrcholy a ověřuje výslednou geometrii před expor
 ## Spuštění ve Windows
 
 Požadavky: Python 3.12 nebo 3.13, Node.js 22.12+ nebo 24, prohlížeč s WebGL2.
+Pro plochou variantu je potřeba také .NET SDK podporující .NET 8 a runtime .NET 8.
+`Start-Luna.ps1` sestaví adaptér i původní projekt před spuštěním rozhraní.
 Pro finální scénu je volitelně potřeba Blender 4.2 nebo novější. Vývoj a testy
 proběhly s Pythonem 3.13.2, Node.js 24.14.1 a VTK 9.7.2.
 
@@ -45,6 +50,40 @@ cd ../..
 ```
 
 ## Ovládání
+
+### Ploché litofánie
+
+Přejdi odkazem „Ploché litofánie“ nebo otevři `http://127.0.0.1:8765/flat.html`
+(při jiném portu změň i tuto adresu). Nový projekt obsahuje ukázkový motiv
+z konfigurace. Lze přidávat a měnit obrázky ze souboru či URL, duplikovat,
+odebírat, přejmenovat, skrývat a přeuspořádat vrstvy. Úpravy do šedi, kontrast,
+gama, úrovně, inverze a výběr barvy pozadí se počítají samostatně pro každou vrstvu.
+
+Zadaná šířka a výška jsou **vnější rozměry desky včetně okraje**. Například
+150 × 100 mm a okraj 5 mm znamenají obrazovou plochu 140 × 90 mm. Okraj má
+maximální tloušťku desky, lze jej vypnout a motiv do něj nesmí vstoupit.
+Při posunutí, otočení nebo změně desky se vrstva přesune dovnitř a případně
+zmenší se zachováním poměru stran. Ochrana platí i pro celý natočený obdélník
+PNG, včetně jeho průhledných částí; algoritmus nehledá těsný obrys objektu.
+
+Ctrl + klik/tažení posouvá střed v rovině desky. Tyrkysové úchyty mění rozměry,
+zlatý natočení; Shift zachovává poměr stran také v číselných polích. Původní
+.NET algoritmy generují tloušťku a vyhlazení. Rozlišení FDM se počítá původním
+vzorcem z trysky a poměru bod/tryska, pro pryskyřici se zadává počet vzorků/mm.
+Průměr trysky neurčuje automaticky bezpečnou minimální tloušťku modelu.
+
+Náhled při úpravách má nižší rozlišení a neprovádí vyhlazení. „Přepočítat model
+v .NET“ zobrazí skutečný přepočítaný povrch; následný export obsahuje tutéž
+geometrii. Podsvícení je aproximace rovnoměrného světla za deskou, nikoli
+fyzikální výpočet konkrétní LED sestavy. Jas, teplotu a útlum lze měnit.
+
+Plochý `.luna` je ZIP s `project.json` (`kind: flat`), přesnými zdrojovými
+obrázky v `sources/`, upravenými PNG v `processed/` a aktuálním `result.stl`,
+pokud už proběhl přepočet. Vstupní STL plochý projekt nepotřebuje. Uchovává
+také parametry desky, tiskového výpočtu, světla a kameru. Projekty Měsíce a
+plochých litofánií se otevírají ve svých příslušných editorech.
+
+### Měsíční litofánie
 
 - Levé tlačítko a tažení otáčí kamerou, kolečko přibližuje, pravé tlačítko posouvá pohled.
 - **Ctrl + kliknutí** ukotví střed obrázku na STL; **Ctrl + tažení** jej přesouvá.
@@ -124,6 +163,10 @@ znovu vytvoří z originálů a uložených parametrů současným algoritmem; e
 STL vyžaduje nové ověření. Původní výsledek přibalený v archivu zůstává dostupný
 ručním rozbalením. Samostatné tlačítko „Uložit STL“ exportuje ověřenou geometrii.
 
+Tlačítka jsou nyní pojmenována „Uložit projekt (.luna)“ a „Exportovat model pro
+tisk (.stl)“. Zpráva po uložení výslovně uvádí, zda archiv obsahuje aktuální
+`result.stl`; rozhoduje skutečný obsah odpovědi serveru, ne odhad rozhraní.
+
 ## Jak se tvoří geometrie
 
 1. VTK načte STL a sdílí shodné vrcholy. Robustní přizpůsobení koule odhadne střed.
@@ -192,6 +235,7 @@ zatím nebyl ověřen skutečným vykreslením.
 ## Testy
 
 ```powershell
+dotnet build FlatLithophaneBridge/FlatLithophaneBridge.csproj -c Release
 .venv/Scripts/python.exe -X utf8 -m pytest spherical/tests -q
 cd spherical/web
 npm test
