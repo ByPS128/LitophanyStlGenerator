@@ -7,6 +7,13 @@ export interface Plate {width:number;height:number;min_mm:number;max_mm:number;b
 export interface FlatPlacement {x_mm:number;y_mm:number;width_mm:number;height_mm:number;angle_deg:number;strength:number;}
 export interface FlatLayer {id:string;name:string;image_id:string;enabled:boolean;placement:FlatPlacement;image_settings:ImageSettings;}
 export interface Grid {x:number[];y:number[];heights:number[];}
+// Older running services omit the rim-height and overflow settings.
+export function normalizeFlatPlate(p:Plate):Plate{
+  return {...p,border_height_mm:p.border_height_mm??p.max_mm,allow_overflow:p.allow_overflow??false};
+}
+export function guideHeight(p:Plate):number{
+  return Math.max(p.max_mm,p.border_enabled?(p.border_height_mm??p.max_mm):0);
+}
 export function fitPlacement(p:FlatPlacement,plate:Plate):FlatPlacement{
   if(!Object.values(p).every(Number.isFinite)||p.width_mm<=0||p.height_mm<=0)throw new Error('Neplatné rozměry nebo umístění vrstvy.');
   const border=plate.border_enabled?plate.border_mm:0,availableX=plate.width-2*border,availableY=plate.height-2*border;

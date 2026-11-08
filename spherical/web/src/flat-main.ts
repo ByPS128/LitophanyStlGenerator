@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate,type FlatLayer,type Grid} from './flat-model';
+import {normalizeFlatPlate,guideHeight,fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate,type FlatLayer,type Grid} from './flat-model';
 import {defaultImageSettings,hexColor,parseHex} from './image-settings';
 import {kelvinColor} from './model';
 import './style.css';
@@ -16,7 +16,7 @@ document.querySelector('#app')!.innerHTML=`
 <section><div class="section-title"><span>01</span><h2>Deska a chráněný okraj</h2></div><div class="fields">
 ${numeric('plate-width','Celková šířka (mm)',150,10,1000)}${numeric('plate-height','Celková výška (mm)',100,10,1000)}</div>
 <label class="checkbox"><input id="border-enabled" type="checkbox" checked> Okraj pro uchycení do rámečku</label>
-<div class="fields">${numeric('border-mm','Šířka lemu (mm)',5,0,499,.5)}${numeric('border-height-mm','Výška lemu (mm)',.6,.1,20,.05)}</div><p id="area" class="hint"></p>
+<div class="fields">${numeric('border-mm','Šířka lemu (mm)',5,0,499,.5)}${numeric('border-height-mm','Výška lemu (mm)',.6,.1,20,.05)}</div><p id="area" class="hint"></p><p id="server-version" class="hint" role="alert" hidden>Běží starší služba. Úchyty fungují, ale pro samostatnou výšku lemu a ořez otevři novou instanci Luny.</p>
 <p class="hint">Šířka lemu ubírá obrazovou plochu po obvodu. Výška lemu určuje tloušťku v ose Z pro zasunutí do rámečku; je nezávislá na tloušťkách obrázku. Lem zůstává bez motivu.</p>
 <div class="fields">${numeric('min-mm','Minimum tloušťky (mm)',.6,.1,10,.05)}${numeric('max-mm','Maximum tloušťky (mm)',3.6,.2,20,.05)}</div></section>
 <section><div class="section-title"><span>02</span><h2>Obrazové vrstvy</h2></div>
@@ -58,6 +58,7 @@ const val=(id:string)=>el<HTMLInputElement>(id).valueAsNumber;
 const checked=(id:string)=>el<HTMLInputElement>(id).checked;
 const set=(id:string,value:number|string)=>{el<HTMLInputElement>(id).value=String(value);};
 let plate:Plate,layers:FlatLayer[]=[],selectedId:string|null=null,resultId:string|null=null;
+let legacyServer=false;
 let busy=false,revision=0,previewTimer:ReturnType<typeof setTimeout>|null=null,previewPromise:Promise<void>|null=null;
 let shift=false,picking=false,imageVersion=0;let originalBitmap:ImageBitmap|null=null;
 let imageRect={x:0,y:0,w:0,h:0};let replacement:string|null=null,urlTarget:string|null=null;
@@ -76,7 +77,9 @@ function controls(){
   document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#new').forEach(c=>c.disabled=busy);
   document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('#layer-controls input,#image-editor input,#image-editor button,#image-editor select,#layer-name,#replace-file,#replace-url,#copy,#remove').forEach(c=>c.disabled=busy||!selectedId);
   const index=layers.findIndex(l=>l.id===selectedId);el<HTMLButtonElement>('up').disabled=busy||index<0||index===layers.length-1;el<HTMLButtonElement>('down').disabled=busy||index<=0;
-  el<HTMLButtonElement>('export').disabled=busy||!resultId;orbit.enabled=!busy;
+  el<HTMLButtonElement>('export').disabled=busy||!resultId;
+  for(const id of ['border-height-mm','allow-overflow'])el<HTMLInputElement>(id).disabled=busy||legacyServer;
+  orbit.enabled=!busy;
 }
 async function request(path:string,data?:unknown){
   const response=await fetch('/api/flat/'+path,data===undefined?undefined:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -97,7 +100,7 @@ el('home').onclick=home;
 function redrawGuides(){
   for(const child of [...guides.children]){guides.remove(child);const object=child as THREE.Mesh;object.geometry?.dispose();const m=object.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m?.dispose();}
   const draw=(points:THREE.Vector3[],color:number)=>{const line=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color,depthTest:false}));line.renderOrder=5;guides.add(line);};
-  const b=plate.border_enabled?plate.border_mm:0,z=Math.max(plate.max_mm,plate.border_enabled?plate.border_height_mm:0)+.2;
+  const b=plate.border_enabled?plate.border_mm:0,z=guideHeight(plate)+.2;
   if(b)draw([new THREE.Vector3(-plate.width/2+b,-plate.height/2+b,z),new THREE.Vector3(plate.width/2-b,-plate.height/2+b,z),new THREE.Vector3(plate.width/2-b,plate.height/2-b,z),new THREE.Vector3(-plate.width/2+b,plate.height/2-b,z)],0xc9a06c);
   const layer=selected();if(!layer||!layer.enabled)return;const p=layer.placement,a=p.angle_deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
   const point=(x:number,y:number)=>new THREE.Vector3(p.x_mm+c*x-s*y,p.y_mm+s*x+c*y,z+.2);
@@ -109,7 +112,7 @@ function redrawGuides(){
 function updateInfo(){
   const b=plate.border_enabled?plate.border_mm:0;el('area').textContent=`Obrazová plocha ${Math.round((plate.width-2*b)*100)/100} × ${Math.round((plate.height-2*b)*100)/100} mm.`;
   el('model-info').textContent=`Deska ${plate.width} × ${plate.height} mm · ${layers.length} obrazových vrstev · původní .NET jádro`;
-  plane.constant=-Math.max(plate.max_mm,plate.border_enabled?plate.border_height_mm:0);material.uniforms.minimum.value=plate.min_mm;material.uniforms.maximum.value=plate.max_mm;redrawGuides();
+  plane.constant=-guideHeight(plate);material.uniforms.minimum.value=plate.min_mm;material.uniforms.maximum.value=plate.max_mm;redrawGuides();
 }
 function showGrid(grid:Grid){mesh.geometry.dispose();mesh.geometry=plateGeometry(grid);updateInfo();}
 function changed(){
@@ -147,7 +150,9 @@ function writeLayer(){
 }
 function select(id:string|null){selectedId=id;picking=false;originalBitmap?.close();originalBitmap=null;el('pick-background').classList.remove('selected');writeLayer();drawLayers();redrawGuides();controls();void imagePreview();}
 async function load(info:any,reset=false){
-  plate=info.plate;layers=info.layers;writePlate();
+  legacyServer=info.plate.border_height_mm===undefined||info.plate.allow_overflow===undefined;
+  el('server-version').hidden=!legacyServer;
+  plate=normalizeFlatPlate(info.plate);layers=info.layers;writePlate();
   if(reset){set('brightness',info.scene.brightness*100);set('kelvin',info.scene.kelvin);set('attenuation',info.scene.attenuation);home();if(info.scene.camera){camera.position.fromArray(info.scene.camera);orbit.target.fromArray(info.scene.target??[0,0,0]);orbit.update();}const button=document.querySelector<HTMLButtonElement>(`#modes button[data-mode="${info.scene.mode??1}"]`);button?.click();}
   select(info.selected_layer_id??layers.at(-1)?.id??null);lights();
   const data=await(await request('preview',composition())).json();showGrid(data);el('quality').textContent='Rychlý náhled bez vyhlazení';

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate} from './flat-model';
+import {normalizeFlatPlate,guideHeight,fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate} from './flat-model';
 import {kelvinColor} from './model';
 
 const plate={width:150,height:100,border_enabled:true,border_mm:5} as Plate;
@@ -68,6 +68,20 @@ describe('optional overflow cropping',()=>{
     const p=fitPlacement(outside,{...plate,allow_overflow:false});
     expect(p.width_mm).toBeLessThan(outside.width_mm);
     expect(p.width_mm/p.height_mm).toBeCloseTo(2);
+  });
+});
+describe('guides with older running services',()=>{
+  it('keeps handles and the picking plane at finite heights when rim settings are absent',()=>{
+    const legacy={width:150,height:100,min_mm:.6,max_mm:3.6,border_enabled:true,border_mm:5} as Plate;
+    expect(guideHeight(legacy)).toBe(3.6);
+    const upgraded=normalizeFlatPlate(legacy);
+    expect(upgraded.border_height_mm).toBe(3.6);expect(upgraded.allow_overflow).toBe(false);
+    expect(Number.isFinite(guideHeight(upgraded)+.4)).toBe(true);
+  });
+  it('keeps guides above both thin and tall rims',()=>{
+    expect(guideHeight({...plate,max_mm:3.6,border_height_mm:.3})).toBe(3.6);
+    expect(guideHeight({...plate,max_mm:3.6,border_height_mm:5})).toBe(5);
+    expect(guideHeight({...plate,max_mm:3.6,border_height_mm:5,border_enabled:false})).toBe(3.6);
   });
 });
 describe('flat lighting',()=>{
