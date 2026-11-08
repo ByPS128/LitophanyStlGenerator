@@ -1,4 +1,4 @@
-"""Edits inner vertices only; verifies the actual resulting triangles before export."""
+"""Edits one chosen shell surface; verifies actual triangles before export."""
 from dataclasses import dataclass
 from pathlib import Path
 import struct
@@ -7,6 +7,12 @@ import numpy as np
 import vtk
 
 from geometry import Moon, RaySampler, blend, compose_tones, polydata
+
+
+def integration_method(value="inside"):
+    if value not in ("inside", "outside"):
+        raise ValueError("Neplatná metoda integrace. Zvol inside nebo outside.")
+    return value
 
 
 @dataclass
@@ -28,21 +34,25 @@ class Engine(Moon):
         self.editable = np.zeros(len(self.points), dtype=bool)
         self.editable[self.interior] = True
         self.editable &= (self.shell >= 0.999) & (np.abs(self.inner_r - self.radii) < 0.0002)
+        self.editable_outer = np.zeros(len(self.points), dtype=bool)
+        self.editable_outer[self.outward] = True
+        self.editable_outer &= (self.shell >= .999) & (np.abs(self.outer_r - self.radii) < .0002)
         self.wall_display = np.nan_to_num(self.wall, nan=self.maximum).astype(np.float32)
         self.original = Result(self.points, self.wall_display, {})
 
-    def constrain(self, points, changed, probe, placement):
+    def constrain(self, points, changed, probe, placement, method="inside"):
         """Project sampled wall constraints onto editable inverse vertex radii.
 
         Uncovered vertices have zero capacity, so the solver cannot spread the
         edit into transparent areas. Infeasible constraints fail validation.
         """
         face_ids = np.full(len(probe), -1, dtype=np.int64)
-        inner, outer = self.rays.radii(probe, face_ids)
+        inner, outer = self.rays.radii(probe, **{"outer_faces" if method == "outside" else "inner_faces": face_ids})
         keep = (face_ids >= 0) & np.isfinite(inner) & (self.shell_weight(inner, outer) >= .999)
         ids = self.faces[face_ids[keep]]
         inner, outer = inner[keep], outer[keep]
-        hit = self.center + probe[keep] * inner[:, None]
+        surface = outer if method == "outside" else inner
+        hit = self.center + probe[keep] * surface[:, None]
         a, b, c = np.moveaxis(self.points[ids].astype(float), 1, 0)
         u, v, w = b-a, c-a, hit-a
         uu = np.einsum('ij,ij->i', u, u)
@@ -60,12 +70,20 @@ class Engine(Moon):
         scale = np.ones(len(points))
         scale[changed] = self.radii[changed] / np.linalg.norm(points[changed]-self.center, axis=1)
         low, high = np.ones_like(scale), np.ones_like(scale)
-        low[changed] = self.radii[changed] / (self.outer_r[changed]-placement.min_mm)
-        high[changed] = self.radii[changed] / (self.outer_r[changed]-placement.max_mm)
+        if method == "outside":
+            low[changed] = self.radii[changed] / (self.inner_r[changed]+placement.max_mm)
+            high[changed] = self.radii[changed] / (self.inner_r[changed]+placement.min_mm)
+        else:
+            low[changed] = self.radii[changed] / (self.outer_r[changed]-placement.min_mm)
+            high[changed] = self.radii[changed] / (self.outer_r[changed]-placement.max_mm)
         scale = np.clip(scale, low, high)
         margin = min(.005, (placement.max_mm-placement.min_mm)*.05)
-        lower = inner/(outer-placement.min_mm-margin)
-        upper = inner/(outer-placement.max_mm+margin)
+        if method == "outside":
+            lower = outer/(inner+placement.max_mm-margin)
+            upper = outer/(inner+placement.min_mm+margin)
+        else:
+            lower = inner/(outer-placement.min_mm-margin)
+            upper = inner/(outer-placement.max_mm+margin)
         for _ in range(80):
             factors = scale[ids]
             denominator = np.einsum('ij,ij->i', weights, factors)
@@ -86,17 +104,19 @@ class Engine(Moon):
         points[changed] = self.center + self.directions[changed]*(self.radii[changed]/scale[changed])[:,None]
         return points
 
-    def calculate(self, motif, placement):
-        return self.calculate_layers([(motif, placement)], placement)
+    def calculate(self, motif, placement, method="inside"):
+        return self.calculate_layers([(motif, placement)], placement, method)
 
-    def calculate_layers(self, layers, placement):
+    def calculate_layers(self, layers, placement, method="inside"):
+        method = integration_method(method)
         tone = compose_tones(self.directions, self.radius, layers)
-        changed = self.editable & (tone[:, 1] > 1e-8)
+        editable = self.editable_outer if method == "outside" else self.editable
+        changed = editable & (tone[:, 1] > 1e-8)
         ids = np.flatnonzero(changed)
         points = self.points.copy()
         if len(ids):
             after = blend(self.wall[ids], tone[ids], placement)
-            new_r = self.radii[ids] - (after - self.wall[ids])
+            new_r = self.radii[ids] + (1 if method == "outside" else -1) * (after - self.wall[ids])
             if np.any(new_r <= 0):
                 raise ValueError("Úprava by protlačila stěnu středem koule.")
             points[ids] = self.center + self.directions[ids] * new_r[:, None]
@@ -110,23 +130,23 @@ class Engine(Moon):
         source_inner = np.concatenate([self.inner_r,self._atlas_rays[1],centroid_inner])
         source_outer = np.concatenate([self.outer_r,self._atlas_rays[2],centroid_outer])
         if len(ids):
-            points = self.constrain(points,changed,probe,placement)
-        # Exact array identity outside editable alpha, including external craters.
+            points = self.constrain(points,changed,probe,placement,method)
+        # Exact array identity outside selected editable alpha and on the opposite wall.
         assert np.array_equal(points[~changed], self.points[~changed])
         after_tri = points[self.faces[faces_changed]].astype(float)
         old_normal = np.cross(before_tri[:, 1] - before_tri[:, 0], before_tri[:, 2] - before_tri[:, 0])
         new_normal = np.cross(after_tri[:, 1] - after_tri[:, 0], after_tri[:, 2] - after_tri[:, 0])
         # A relief slope can legitimately rotate its normal by over 90 degrees.
         # The signed radial orientation, rather than the old/new normal dot
-        # product, detects an actual fold of this star-shaped inner surface.
+        # product, detects an actual fold of the selected star-shaped surface.
         old_sign = np.einsum('ij,ij->i', old_normal, before_tri.mean(axis=1) - self.center)
         new_sign = np.einsum('ij,ij->i', new_normal, after_tri.mean(axis=1) - self.center)
         if np.any(old_sign * new_sign <= 0) or np.any(np.linalg.norm(new_normal, axis=1) < 1e-10):
             raise ValueError("Úprava obrací nebo zplošťuje trojúhelníky. Sniž sílu motivu nebo rozsah tloušťky.")
 
-        rays = RaySampler(polydata(points, self.faces), self.center, self.radius * 1.3)
+        rays = RaySampler(polydata(points, self.faces), self.center, float(np.linalg.norm(points-self.center, axis=1).max()) * 1.15)
         # Validate actual triangles, not the target texture. Include all original
-        # vertex directions, atlas rays, and centroids of modified inner triangles.
+        # vertex directions, atlas rays, and centroids of modified triangles.
         inner, outer = rays.radii(probe)
         measured = outer - inner
         coverage = compose_tones(probe, self.radius, layers)[:, 1]
@@ -154,7 +174,7 @@ class Engine(Moon):
             'min_mm': float(samples.min()) if len(samples) else None,
             'max_mm': float(samples.max()) if len(samples) else None,
             'exportable': not bool(outside.any() or invalid.any()),
-            'repairs': self.repairs,
+            'repairs': self.repairs, 'integration_method': method,
         }
         return Result(points, np.nan_to_num(measured[:len(points)], nan=self.maximum).astype(np.float32), stats)
 

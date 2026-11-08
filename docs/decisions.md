@@ -1,5 +1,27 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Volba přední a zadní integrace Měsíce
+
+**Co:** Kulový editor nabízí změnu vnitřní nebo vnější stěny. Volba platí pro
+všechny vrstvy, ukládá se do projektu a rozlišuje názvy exportovaných STL.
+
+**Jak:** Výchozí `inside` zachovává dosavadní chování i pro starší projekty.
+`outside` posouvá pouze bezpečně rozpoznané vnější vrcholy; vnitřní stěna,
+límec a nezasažené vrcholy zůstávají přesně zachované. Korekce tloušťky používá
+průsečíky vybrané strany, ověření měří výsledné trojúhelníky. Metoda je součástí
+ověřené revize, takže projekt nepřibalí STL vypočítané pro jinou metodu.
+Rychlý náhled zůstává aproximací tloušťky; skutečný reliéf je vidět po přepočtu.
+Fyzická ostrost přední a zadní integrace vyžaduje srovnávací tisk.
+
+Ověřeno 109 testy Pythonu (včetně obou metod na uživatelově Měsíci s drakem),
+59 testy rozhraní a sestavením TypeScriptu. Testy rozhraní nahrazují GPU;
+nejde o vizuální ověření grafické karty ani kalibraci průchodu světla.
+
+**Odkazy:** [Úkol 5](https://github.com/ByPS128/LitophanyStlGenerator/issues/5),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1)
+a [úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3).
+
+
 ## 2026-11-08 — Srozumitelná dostupnost ovládání
 
 **Co:** Plochá i kulová Luna vysvětlují zakázané prvky včetně konkrétního kroku

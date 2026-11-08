@@ -117,6 +117,22 @@ plochých litofánií se otevírají ve svých příslušných editorech.
 
 ### Měsíční litofánie
 
+V části **Tloušťka pro tisk → Metoda integrace** lze zvolit:
+- **Zezadu — vnitřní stěna** (výchozí): zachová vnější krátery a mění vnitřek.
+- **Zepředu — vnější povrch**: zachová vnitřní stěnu a mění vnější reliéf,
+  takže motiv může být vidět i bez podsvícení.
+
+Volba platí pro všechny vrstvy a ukládá se do projektu jako `integration_method`
+(`inside` / `outside`). Starší projekty bez této hodnoty používají `inside`.
+Přepnutí zneplatní ověření; před exportem je nutný nový přepočet. Názvy exportů
+`moon-inside.stl` a `moon-outside.stl` pomáhají rozlišit zkušební výtisky.
+Průhledné oblasti a protější stěna zůstávají přesně zachované v obou metodách.
+Rychlý náhled simuluje cílovou tloušťku na původním povrchu; teprve přepočet
+zobrazí skutečně posunuté vrcholy a jejich normály. Náhled nepředpovídá rozdíl
+v ostrosti při rozptylu světla v konkrétním filamentu. Ten ověř srovnávacím tiskem.
+Starší běžící služba nabízí jen zadní integraci a vysvětluje postup aktualizace.
+
+
 - Levé tlačítko a tažení otáčí kamerou, kolečko přibližuje, pravé tlačítko posouvá pohled.
 - **Ctrl + kliknutí** ukotví střed obrázku na STL; **Ctrl + tažení** jej přesouvá.
   Alternativou je přepínač „Umístit motiv“.
@@ -205,7 +221,7 @@ tisk (.stl)“. Zpráva po uložení výslovně uvádí, zda archiv obsahuje akt
 2. Kontrola hran odmítne nekonzistentní síť. Pouze malé mezery tvořené třemi
    hranami může uzavřít; počet oprav se zobrazuje a ukládá k ověření.
 3. Radiální paprsky měří vnitřní a vnější stěnu. Upravit lze jen bezpečně
-   rozpoznanou vnitřní část kulové skořepiny; montážní límec zůstává pevný.
+   rozpoznanou zvolenou stranu kulové skořepiny; montážní límec zůstává pevný.
 4. Azimutální ekvidistantní mapování promítne PNG kolem kotvy. Obraz se načítá
    nejvýše v rozlišení 1600 × 1600. Jas RGB je vážený součtem 0,2126 / 0,7152 /
    0,0722; výpočty používají hodnoty obrázku bez dalšího gama převodu.
@@ -215,8 +231,8 @@ tisk (.stl)“. Zpráva po uložení výslovně uvádí, zda archiv obsahuje akt
    skládají nad sebou v této násobené reprezentaci a meze se uplatní na společný
    výsledek. Průhledná místa všech vrstev dohromady zachovávají původní model.
 6. Meze se aplikují jen v zasažené oblasti. Nulová alfa nebo dominance zachová
-   původní vrcholy přesně, i když leží mimo meze. Vnější vrcholy se neposouvají.
-7. Korekce radiálních měření přerozděluje pouze posuny již zasažených vnitřních
+   původní vrcholy přesně, i když leží mimo meze. Protější stěna se neposouvá.
+7. Korekce radiálních měření přerozděluje pouze posuny již zasažených vybraných
    vrcholů. Nezasažené vrcholy mají nulovou kapacitu pro korekci. Korekce může
    lokálně změnit požadovanou dominanci, aby dodržela tloušťku.
 8. Ověření používá skutečné nové trojúhelníky: směry všech původních vrcholů,
