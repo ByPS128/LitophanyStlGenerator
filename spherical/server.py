@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image
 from engine import Engine
 from layers import LayerStore
-from project_config import defaults
+from project_config import defaults, write_runtime_descriptor
 from remote_images import download_image
 from flat import handle as handle_flat
 
@@ -369,6 +369,7 @@ def main():
     server.daemon_threads = True
     server.state = state
     url = f'http://127.0.0.1:{server.server_port}/'
+    write_runtime_descriptor(ROOT / 'web/dist', server.server_port)
     print(f'Luna: {url}', flush=True)
     if not args.no_browser:
         webbrowser.open(url)

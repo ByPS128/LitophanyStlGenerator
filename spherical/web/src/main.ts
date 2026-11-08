@@ -3,6 +3,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {basis, decodeMesh, kelvinColor, resizeDimensions, surfacePoint, validatePlacement, type Placement} from './model';
 import {createMaterial} from './material';
 import {defaultImageSettings,hexColor,parseHex,type ImageSettings} from './image-settings';
+import {setControlState,moonControlReason,CONTROL_HELP,layerOrderNote,LAYER_REASON} from './control-state';
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -20,10 +21,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="add-url" class="quiet wide">＋ Přidat obrázek z URL</button><div class="fields"><button id="replace-file">Změnit obrázek z počítače</button><button id="replace-url">Změnit obrázek z URL</button></div><div id="layer-list" class="layer-list" aria-label="Vrstvy motivů"></div>
     <label class="layer-name">Název vybrané vrstvy<input id="layer-name" type="text" maxlength="250" placeholder="Vyber vrstvu"></label>
     <div class="layer-actions"><button id="layer-up" title="Posunout výš">↑</button><button id="layer-down" title="Posunout níž">↓</button><button id="layer-copy">Duplikovat</button><button id="layer-remove">Odebrat</button></div>
-    <p class="hint">Průhlednost chrání původní povrch. Bílá ztenčuje stěnu, černá ji zesiluje.</p>
+    <p id="layer-state-note" class="ux-group-note" role="status" hidden></p><p class="hint">Průhlednost chrání původní povrch. Bílá ztenčuje stěnu, černá ji zesiluje.</p>
   </section>
   <section id="image-editor"><div class="section-title"><span>02</span><h2>Úpravy vybraného PNG</h2></div>
-    <canvas id="image-preview" width="280" height="190" aria-label="Náhled upraveného obrázku"></canvas>
+    <p id="image-state-note" class="ux-group-note" hidden></p><canvas id="image-preview" width="280" height="190" aria-label="Náhled upraveného obrázku"></canvas>
     <canvas id="histogram" width="256" height="48" aria-label="Histogram jasů neprůhledných bodů"></canvas>
     <label>Metoda převodu do šedi<select id="gray-method"><option value="luminance">Vážený jas (Rec. 709)</option><option value="average">Průměr RGB</option><option value="lightness">Průměr nejsvětlejší a nejtmavší složky</option><option value="red">Červený kanál</option><option value="green">Zelený kanál</option><option value="blue">Modrý kanál</option></select></label>
     <label class="range">Jas obrázku <output id="image-brightness-value">0</output><input id="image-brightness" type="range" min="-100" max="100" value="0"></label>
@@ -72,6 +73,7 @@ const fmt = (n:number,d=2) => n.toLocaleString('cs-CZ',{maximumFractionDigits:d}
 let model: {radius:number;center:number[];triangles:number;name:string;repairs:number;min_mm:number;max_mm:number} | null=null;
 interface Layer {id:string;name:string;image_id:string;enabled:boolean;placement:Omit<Placement,'min_mm'|'max_mm'>;image_settings:ImageSettings;}
 let layers:Layer[]=[],selectedId:string|null=null;
+let blenderAvailable=false;
 let hasMotif=false, busy=false, resultId:string|null=null, exportable=false, moving=false, original=false;
 let previewTimer:ReturnType<typeof setTimeout>|null=null,previewRevision=0,previewRunning=false,previewAgain=false;
 let pickingBackground=false,imageSelectionVersion=0,sourceId:string|null=null,sourceBitmap:ImageBitmap|null=null;
@@ -108,18 +110,14 @@ renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 
 function status(text:string,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
 function buttons(){
-  for(const id of ['open-stl','open-motif','demo','restore']) el<HTMLButtonElement>(id).disabled=busy;
-  for(const id of ['apply','open-motif','add-url'])el<HTMLButtonElement>(id).disabled=busy||!model;
-  for(const id of ['export','bundle','render'])el<HTMLButtonElement>(id).disabled=busy||!resultId||!exportable;
-  for(const id of ['save','snapshot'])el<HTMLButtonElement>(id).disabled=busy||!model;
-  document.querySelectorAll<HTMLInputElement>('aside input:not([type=file])').forEach(input=>input.disabled=busy);
-  document.querySelectorAll<HTMLButtonElement>('.layer-row button').forEach(button=>button.disabled=busy);
-  for(const id of ['width','height','angle','strength','layer-name'])el<HTMLInputElement>(id).disabled=busy||!selectedId;
-  const index=layers.findIndex(l=>l.id===selectedId);
-  el<HTMLButtonElement>('layer-up').disabled=busy||index<0||index===layers.length-1;
-  el<HTMLButtonElement>('layer-down').disabled=busy||index<=0;
-  for(const id of ['layer-copy','layer-remove','replace-file','replace-url'])el<HTMLButtonElement>(id).disabled=busy||index<0;
-  document.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLButtonElement>('#image-editor input,#image-editor select,#image-editor button').forEach(control=>control.disabled=busy||!selectedId);
+  const state={busy,hasLayer:!!selectedId,index:layers.findIndex(l=>l.id===selectedId),count:layers.length,
+    resultReady:!!resultId&&exportable,hasResult:!!resultId,modelLoaded:!!model,blender:blenderAvailable};
+  document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#demo,#move').forEach(control=>{
+    const reason=moonControlReason(control.id,state,!!control.closest('#image-editor'));
+    setControlState(control,reason,CONTROL_HELP[control.id],reason!==LAYER_REASON&&!['layer-up','layer-down'].includes(control.id));
+  });
+  const note=layerOrderNote(state);el('layer-state-note').textContent=note;el('layer-state-note').hidden=!note;
+  el('image-state-note').textContent=LAYER_REASON;el('image-state-note').hidden=state.hasLayer;
   orbit.enabled=!busy&&!moving;
 }
 async function work(message:string,action:()=>Promise<void>){
@@ -193,10 +191,11 @@ function drawLayers(){
   const list=el('layer-list');list.replaceChildren();
   for(const layer of [...layers].reverse()){
     const row=document.createElement('div');row.className='layer-row'+(layer.id===selectedId?' active':'');
-    const check=document.createElement('input');check.type='checkbox';check.checked=layer.enabled;check.disabled=busy;check.ariaLabel=`Viditelnost vrstvy ${layer.name}`;
+    const check=document.createElement('input');check.type='checkbox';check.checked=layer.enabled;check.ariaLabel=`Viditelnost vrstvy ${layer.name}`;
     check.onchange=()=>{layer.enabled=check.checked;invalidate();update();};
-    const button=document.createElement('button');button.textContent=layer.name;button.title=layer.name;button.disabled=busy;
+    const button=document.createElement('button');button.textContent=layer.name;button.title=layer.name;
     button.onclick=()=>selectLayer(layer.id);row.append(check,button);list.append(row);
+    const reason=busy?'Právě probíhá zpracování. Počkej na jeho dokončení.':null;setControlState(check,reason);setControlState(button,reason);
   }
   const base=document.createElement('div');base.className='base-layer';base.textContent='0 · STL — původní Měsíc (pevná vrstva)';list.append(base);
   el('motif-name').textContent=`${layers.length} ${layers.length===1?'vrstva':'vrstev'} · pořadí shora dolů`;
@@ -278,6 +277,7 @@ async function refreshComposite(force=false){
   finally{previewRunning=false;if(previewAgain){previewAgain=false;if(!busy)void refreshComposite();}}
 }
 async function loadInfo(info:any,reset:boolean){
+  blenderAvailable=!!info.blender;
   const oldModel=model;model=info.model;layers=info.layers??[];hasMotif=layers.some(l=>l.enabled);selectedId=null;
   el('stl-name').textContent=model?.name||'Načíst STL ↗';
   el('blender-info').textContent=info.blender?'Blender je dostupný. Finální výpočet poběží na tomto počítači.':'Blender nebyl nalezen. Scénu můžeš stáhnout a otevřít na počítači s Blenderem 4.2 nebo novějším.';

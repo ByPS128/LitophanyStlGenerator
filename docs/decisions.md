@@ -1,5 +1,21 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Srozumitelná dostupnost ovládání
+
+**Co:** Plochá i kulová Luna vysvětlují zakázané prvky včetně konkrétního kroku
+pro zpřístupnění. Přidány nápovědy při najetí a ovládání klávesnicí, sdílené
+vysvětlení pořadí či výběru vrstvy a výrazná navigace ze starší běžící služby.
+
+**Jak:** `control-state.ts` sjednocuje pravidla a přístupné vysvětlení nativně
+zakázaných prvků. Nový projekt na aktuální službě nezakazuje přesah kvůli chybějícímu
+STL ani vrstvě. Starší služba nabízí uložení projektu a odkaz na aktuální editor
+podle lokálního `runtime.json`; původní projekt ani záložka se automaticky neruší.
+Testy přes skutečné obsluhy událostí stránky ověřují nový projekt, starší službu,
+přepočet, zpřístupnění exportu a jeho opětovné zablokování po úpravě.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+[PR 4](https://github.com/ByPS128/LitophanyStlGenerator/pull/4).
+
 ## 2026-11-08 — Přesah obrázků a samostatná výška lemu
 
 **Co:** Plochý editor umožňuje volitelně přesahovat obrazovou plochu a motiv

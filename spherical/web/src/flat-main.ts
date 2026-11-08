@@ -3,11 +3,18 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {normalizeFlatPlate,guideHeight,fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate,type FlatLayer,type Grid} from './flat-model';
 import {defaultImageSettings,hexColor,parseHex} from './image-settings';
 import {kelvinColor} from './model';
+import {setControlState,flatControlReason,CONTROL_HELP,currentEditorUrl,layerOrderNote,LAYER_REASON} from './control-state';
 import './style.css';
 
 const numeric=(id:string,label:string,value:number,min:number,max:number,step=1)=>`<label>${label}<input id="${id}" type="number" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
 document.querySelector('#app')!.innerHTML=`
 <header><div class="brand"><span class="moon-icon">▱</span><div>LUNA <small>PLOCHÉ LITOFÁNIE · .NET</small></div></div><a href="/">Přejít na Měsíc →</a></header>
+<section id="compatibility-banner" class="compatibility-banner" role="alert" hidden>
+<h2>Tato otevřená verze neumí ořez obrázků ani samostatnou výšku lemu.</h2>
+<p>„Nový projekt“ založí jen další projekt ve stejné verzi. Pro nové funkce přejdi do aktuálního editoru. Pokud jsi tady provedl změny, nejdřív je ulož. V aktuálním editoru pak zvol „Otevřít projekt“ a vyber stažený soubor .luna.</p>
+<div class="compatibility-actions"><button id="compat-save">1. Uložit rozpracovaný projekt</button><a id="current-editor" target="_blank" rel="noopener" hidden>2. Otevřít aktuální editor ↗</a></div>
+<p id="compat-fallback" hidden>Aktuální editor se nepodařilo najít. Spusť Start-Luna.ps1 a otevři adresu, kterou aplikace vypíše.</p>
+</section>
 <main><section class="workspace"><div class="scene-top"><div><span class="eyebrow">SVĚTLO ZA OBRAZEM</span><h1>Obraz pro tvůj rámeček.</h1><p id="model-info">Původní .NET generátor, prostorový náhled a vrstvy.</p></div><button id="new">Nový projekt</button></div>
 <div id="viewport"><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text"></p></div></div>
 <div class="toolbar"><div class="segmented" id="modes"><button data-mode="0">Povrch</button><button data-mode="1" class="selected">Podsvícení</button><button data-mode="2">Tloušťka</button></div><button id="home">↺ Čelní pohled</button></div>
@@ -16,7 +23,7 @@ document.querySelector('#app')!.innerHTML=`
 <section><div class="section-title"><span>01</span><h2>Deska a chráněný okraj</h2></div><div class="fields">
 ${numeric('plate-width','Celková šířka (mm)',150,10,1000)}${numeric('plate-height','Celková výška (mm)',100,10,1000)}</div>
 <label class="checkbox"><input id="border-enabled" type="checkbox" checked> Okraj pro uchycení do rámečku</label>
-<div class="fields">${numeric('border-mm','Šířka lemu (mm)',5,0,499,.5)}${numeric('border-height-mm','Výška lemu (mm)',.6,.1,20,.05)}</div><p id="area" class="hint"></p><p id="server-version" class="hint" role="alert" hidden>Běží starší služba. Úchyty fungují, ale pro samostatnou výšku lemu a ořez otevři novou instanci Luny.</p>
+<div class="fields">${numeric('border-mm','Šířka lemu (mm)',5,0,499,.5)}${numeric('border-height-mm','Výška lemu (mm)',.6,.1,20,.05)}</div><p id="area" class="hint"></p>
 <p class="hint">Šířka lemu ubírá obrazovou plochu po obvodu. Výška lemu určuje tloušťku v ose Z pro zasunutí do rámečku; je nezávislá na tloušťkách obrázku. Lem zůstává bez motivu.</p>
 <div class="fields">${numeric('min-mm','Minimum tloušťky (mm)',.6,.1,10,.05)}${numeric('max-mm','Maximum tloušťky (mm)',3.6,.2,20,.05)}</div></section>
 <section><div class="section-title"><span>02</span><h2>Obrazové vrstvy</h2></div>
@@ -24,13 +31,13 @@ ${numeric('plate-width','Celková šířka (mm)',150,10,1000)}${numeric('plate-h
 <input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden><div id="layer-list" class="layer-list"></div>
 <label class="layer-name">Název vrstvy<input id="layer-name" maxlength="250"></label>
 <div class="layer-actions"><button id="up">↑</button><button id="down">↓</button><button id="copy">Duplikovat</button><button id="remove">Odebrat</button></div>
-<div class="fields"><button id="replace-file">Změnit z počítače</button><button id="replace-url">Změnit z URL</button></div>
+<p id="layer-state-note" class="ux-group-note" role="status" hidden></p><div class="fields"><button id="replace-file">Změnit z počítače</button><button id="replace-url">Změnit z URL</button></div>
 <label class="checkbox"><input id="allow-overflow" type="checkbox"> Povolit přesah obrázků a oříznout</label><p class="hint">Platí pro všechny vrstvy. Přesah za obrazovou plochu se nevytiskne, lem zůstane zachovaný. Po vypnutí se vrstvy znovu vejdou celé dovnitř.</p>
 <div id="layer-controls"><div class="fields">${numeric('x-mm','Střed X (mm)',0,-1000,1000,.5)}${numeric('y-mm','Střed Y (mm)',0,-1000,1000,.5)}${numeric('width-mm','Šířka motivu (mm)',100,.1,1000,.5)}${numeric('height-mm','Výška motivu (mm)',75,.1,1000,.5)}</div>
 <label class="range">Natočení <output id="angle-output"></output><input id="angle-deg" type="range" min="-180" max="180" value="0"></label>
 <label class="range">Dominance <output id="strength-output"></output><input id="strength" type="range" min="0" max="100" value="100"></label></div></section>
 <section id="image-editor"><div class="section-title"><span>03</span><h2>Úpravy obrázku</h2></div>
-<canvas id="image-preview" width="280" height="190"></canvas><label>Metoda převodu do šedi<select id="gray-method"><option value="luminance">Vážený jas</option><option value="average">Průměr RGB</option><option value="lightness">Světlost</option><option value="red">Červená</option><option value="green">Zelená</option><option value="blue">Modrá</option></select></label>
+<p id="image-state-note" class="ux-group-note" hidden></p><canvas id="image-preview" width="280" height="190"></canvas><label>Metoda převodu do šedi<select id="gray-method"><option value="luminance">Vážený jas</option><option value="average">Průměr RGB</option><option value="lightness">Světlost</option><option value="red">Červená</option><option value="green">Zelená</option><option value="blue">Modrá</option></select></label>
 <div class="fields">${numeric('image-brightness','Jas',0,-1,1,.05)}${numeric('image-contrast','Kontrast',1,.1,3,.05)}${numeric('image-gamma','Gama',1,.2,3,.05)}${numeric('image-black','Černý bod',0,0,.99,.01)}${numeric('image-white','Bílý bod',1,.01,1,.01)}</div>
 <label class="checkbox"><input id="image-invert" type="checkbox"> Obrátit jas</label>
 <label class="checkbox"><input id="background-enabled" type="checkbox"> Odstranit barvu pozadí</label>
@@ -58,7 +65,7 @@ const val=(id:string)=>el<HTMLInputElement>(id).valueAsNumber;
 const checked=(id:string)=>el<HTMLInputElement>(id).checked;
 const set=(id:string,value:number|string)=>{el<HTMLInputElement>(id).value=String(value);};
 let plate:Plate,layers:FlatLayer[]=[],selectedId:string|null=null,resultId:string|null=null;
-let legacyServer=false;
+let legacyServer=false,bridgeAvailable=false;
 let busy=false,revision=0,previewTimer:ReturnType<typeof setTimeout>|null=null,previewPromise:Promise<void>|null=null;
 let shift=false,picking=false,imageVersion=0;let originalBitmap:ImageBitmap|null=null;
 let imageRect={x:0,y:0,w:0,h:0};let replacement:string|null=null,urlTarget:string|null=null;
@@ -74,11 +81,14 @@ renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 window.addEventListener('keydown',e=>{shift=e.shiftKey;});window.addEventListener('keyup',e=>{shift=e.shiftKey;});window.addEventListener('blur',()=>{shift=false;});
 function status(text:string,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
 function controls(){
-  document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#new').forEach(c=>c.disabled=busy);
-  document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('#layer-controls input,#image-editor input,#image-editor button,#image-editor select,#layer-name,#replace-file,#replace-url,#copy,#remove').forEach(c=>c.disabled=busy||!selectedId);
-  const index=layers.findIndex(l=>l.id===selectedId);el<HTMLButtonElement>('up').disabled=busy||index<0||index===layers.length-1;el<HTMLButtonElement>('down').disabled=busy||index<=0;
-  el<HTMLButtonElement>('export').disabled=busy||!resultId;
-  for(const id of ['border-height-mm','allow-overflow'])el<HTMLInputElement>(id).disabled=busy||legacyServer;
+  const state={busy,hasLayer:!!selectedId,index:layers.findIndex(l=>l.id===selectedId),count:layers.length,resultReady:!!resultId,
+    legacy:legacyServer,bridge:bridgeAvailable,border:plate?.border_enabled??false,printMode:plate?.print_mode??'FDM',filter:plate?.smoothing??'None'};
+  document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#new,#compat-save').forEach(control=>{
+    const reason=flatControlReason(control.id,state,!!control.closest('#image-editor'));
+    setControlState(control,reason,CONTROL_HELP[control.id],reason!==LAYER_REASON&&!['up','down'].includes(control.id));
+  });
+  const note=layerOrderNote(state);el('layer-state-note').textContent=note;el('layer-state-note').hidden=!note;
+  el('image-state-note').textContent=LAYER_REASON;el('image-state-note').hidden=state.hasLayer;
   orbit.enabled=!busy;
 }
 async function request(path:string,data?:unknown){
@@ -133,8 +143,9 @@ function drawLayers(){
   const list=el('layer-list');list.replaceChildren();
   for(const layer of [...layers].reverse()){
     const row=document.createElement('div');row.className='layer-row'+(layer.id===selectedId?' active':'');
-    const visible=document.createElement('input');visible.type='checkbox';visible.checked=layer.enabled;visible.disabled=busy;visible.onchange=()=>{layer.enabled=visible.checked;changed();};
+    const visible=document.createElement('input');visible.type='checkbox';visible.checked=layer.enabled;visible.setAttribute('aria-label',`Viditelnost vrstvy ${layer.name}`);visible.onchange=()=>{layer.enabled=visible.checked;changed();};
     const button=document.createElement('button');button.textContent=layer.name;button.onclick=()=>select(layer.id);row.append(visible,button);list.append(row);
+    const reason=busy?'Právě probíhá zpracování. Počkej na jeho dokončení.':null;setControlState(visible,reason);setControlState(button,reason);
   }
   const base=document.createElement('p');base.className='hint';base.textContent='0 · Základní deska a chráněný okraj';list.append(base);
 }
@@ -149,9 +160,21 @@ function writeLayer(){
   el<HTMLInputElement>('image-invert').checked=layer.image_settings.invert;el<HTMLInputElement>('background-enabled').checked=layer.image_settings.background_enabled;
 }
 function select(id:string|null){selectedId=id;picking=false;originalBitmap?.close();originalBitmap=null;el('pick-background').classList.remove('selected');writeLayer();drawLayers();redrawGuides();controls();void imagePreview();}
+async function showCompatibility(){
+  el('compatibility-banner').hidden=!legacyServer;
+  if(!legacyServer)return;
+  try{
+    const response=await fetch('/runtime.json');if(!response.ok)throw new Error();
+    const info=await response.json(),url=currentEditorUrl(info.flat_editor_url,location.origin);
+    if(!legacyServer)return;
+    if(!url)throw new Error();
+    const link=el<HTMLAnchorElement>('current-editor');link.href=url;link.hidden=false;el('compat-fallback').hidden=true;
+  }catch{if(legacyServer){el('current-editor').hidden=true;el('compat-fallback').hidden=false;}}
+}
 async function load(info:any,reset=false){
   legacyServer=info.plate.border_height_mm===undefined||info.plate.allow_overflow===undefined;
-  el('server-version').hidden=!legacyServer;
+  bridgeAvailable=!!info.bridge_available;
+  void showCompatibility();
   plate=normalizeFlatPlate(info.plate);layers=info.layers;writePlate();
   if(reset){set('brightness',info.scene.brightness*100);set('kelvin',info.scene.kelvin);set('attenuation',info.scene.attenuation);home();if(info.scene.camera){camera.position.fromArray(info.scene.camera);orbit.target.fromArray(info.scene.target??[0,0,0]);orbit.update();}const button=document.querySelector<HTMLButtonElement>(`#modes button[data-mode="${info.scene.mode??1}"]`);button?.click();}
   select(info.selected_layer_id??layers.at(-1)?.id??null);lights();
@@ -212,6 +235,7 @@ el('save').onclick=()=>work('Ukládám obrázky, vrstvy a nastavení…',async()
   const response=await request('save',{...composition(),scene:sceneSettings(),result_id:resultId}),included=response.headers.get('X-Luna-Result-Included')==='true';
   download(await response.blob(),'flat-project.luna');status(included?'Projekt uložen včetně aktuálního result.stl.':'Projekt uložen BEZ výsledného STL. Obsahuje obrázky a nastavení pro další úpravy; STL přiložíme po přepočtu modelu.',!included);
 });
+el('compat-save').onclick=()=>el<HTMLButtonElement>('save').click();
 el('open').onclick=()=>el<HTMLInputElement>('project-file').click();el('project-file').onchange=()=>work('Otevírám plochý projekt…',async()=>{
   const input=el<HTMLInputElement>('project-file'),file=input.files?.[0];if(!file)return;
   const response=await fetch('/api/flat/open',{method:'POST',body:file});input.value='';if(!response.ok)throw new Error((await response.json()).error);

@@ -51,6 +51,27 @@ cd ../..
 
 ## Ovládání
 
+### Dostupnost ovládání a nápověda
+
+Zakázaný prvek vysvětluje důvod a další krok přímo u ovládání (nebo společně
+u celé skupiny, například chybějící vybraná vrstva). Stejný důvod je dostupný
+po najetí myší a přes klávesu Tab i u nativně zakázaného prvku. Nápovědu lze
+zavřít klávesou Escape. Během výpočtu jej vysvětluje společný indikátor průběhu,
+aby se stejná zpráva neopakovala pod každým vstupem.
+
+Přepínač přesahu je v novém projektu aktuální služby dostupný bez přepočtu STL
+a i bez obrazových vrstev. Na starší běžící službě, která přesah ještě neumí,
+je nahoře výrazné upozornění: založení nového projektu službu neaktualizuje.
+Tlačítka umožní uložit rozpracovaný projekt a otevřít aktuální editor v nové
+záložce. Ten se vyhledá přes místní `runtime.json`, který aplikace zapisuje po
+spuštění; odkaz není pevně svázán s konkrétním portem. Projekt se přenáší otevřením
+uloženého `.luna`, nepřepisuje se automaticky jiný rozpracovaný projekt.
+
+Obě rozhraní používají společné `control-state.ts`. Testy kontrolují pravidla
+dostupnosti, důvody v DOM, aktivaci popiskem, klávesnicový přístup i skutečné
+události stránky plochého editoru. Tyto testy nahrazují pouze grafickou kartu
+a síťové požadavky; nejsou ověřením fyzického prosvícení ani vizuálním testem GPU.
+
 ### Ploché litofánie
 
 Přejdi odkazem „Ploché litofánie“ nebo otevři `http://127.0.0.1:8765/flat.html`
