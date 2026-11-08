@@ -8,7 +8,7 @@ import './style.css';
 
 const numeric=(id:string,label:string,value:number,min:number,max:number,step=1)=>`<label>${label}<input id="${id}" type="number" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
 document.querySelector('#app')!.innerHTML=`
-<header><div class="brand"><span class="moon-icon">▱</span><div>LUNA <small>PLOCHÉ LITOFÁNIE · .NET</small></div></div><a href="/">Přejít na Měsíc →</a></header>
+<header><div class="brand"><span class="moon-icon">▱</span><div>LUNA <small>PLOCHÉ LITOFÁNIE · .NET</small></div></div><a href="/">Rozcestník</a><a href="/sphere.html">Přejít na Měsíc →</a></header>
 <section id="compatibility-banner" class="compatibility-banner" role="alert" hidden>
 <h2>Tato otevřená verze neumí ořez obrázků ani samostatnou výšku lemu.</h2>
 <p>„Nový projekt“ založí jen další projekt ve stejné verzi. Pro nové funkce přejdi do aktuálního editoru. Pokud jsi tady provedl změny, nejdřív je ulož. V aktuálním editoru pak zvol „Otevřít projekt“ a vyber stažený soubor .luna.</p>

@@ -17,7 +17,30 @@ Pro plochou variantu je potřeba také .NET SDK podporující .NET 8 a runtime .
 Pro finální scénu je volitelně potřeba Blender 4.2 nebo novější. Vývoj a testy
 proběhly s Pythonem 3.13.2, Node.js 24.14.1 a VTK 9.7.2.
 
-Z kořene repozitáře:
+Nejjednodušší spuštění ve Windows: otevři **`Start-Luna.cmd`** v kořeni projektu.
+Připraví Pythonové prostředí (při prvním spuštění i závislosti), sestaví web
+a původní .NET jádro s adaptérem, spustí místní službu na pozadí a otevře
+rozcestník. Potřebuje nainstalovaný Python, Node.js/npm a .NET SDK uvedené výše.
+`Start-Luna.cmd -Install` znovu nainstaluje závislosti. Opakované spuštění
+otevře již běžící spravovanou instanci; aktualizace kódu vyžaduje zastavení a nový start.
+
+**`Stop-Luna.cmd`** po potvrzení zastaví tuto instanci i případné její výpočty.
+Předtím ulož projekty v obou editorech; neuložená práce v paměti se ztratí.
+Uložené soubory se nemažou. Starší ručně spuštěné instance ani jiné Pythonové
+a .NET aplikace se neukončují. Spouštěč kontroluje cestu programu, příkaz a čas
+vzniku procesu, aby omylem nezastavil jiný proces s opětovně použitým číslem.
+
+Výchozí port je 8765. Je-li obsazený, vybere se první volný z následujících
+20 portů; správnou adresu spouštěč vypíše a otevře. Stav a diagnostika jsou
+v ignorované složce `temp/`: `luna-process.json`, `luna-stdout.log`,
+`luna-stderr.log`. Web a API poskytuje jediná Pythonová služba; .NET adaptér
+se spouští až při výpočtu plochého modelu a nemusí trvale běžet zvlášť.
+
+Úvodní stránka `/` představí Lunu a nabízí oba editory:
+`/flat.html` pro desku do rámečku, `/sphere.html` pro měsíční skořepinu.
+V záhlaví obou editorů je odkaz zpět na rozcestník.
+
+Původní spuštění v otevřeném terminálu zůstává dostupné. Z kořene repozitáře:
 
 ```powershell
 .\Start-Luna.ps1 -Install # první instalace závislostí

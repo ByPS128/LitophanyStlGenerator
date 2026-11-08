@@ -1,5 +1,30 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Spuštění jedním souborem a rozcestník Luny
+
+**Co:** `Start-Luna.cmd` připraví a spustí místní aplikaci, `Stop-Luna.cmd`
+po potvrzení ukončí její procesy. Úvodní stránka představuje litofánii a odkazuje
+na plochý editor `/flat.html` a kulový editor `/sphere.html`.
+
+**Jak:** Společný `Manage-Luna.ps1` využívá existující sestavení v `Start-Luna.ps1`.
+Python obsluhuje web i API; .NET adaptér se spouští pouze pro výpočet ploch.
+Zámek brání souběžným startům, opakovaný start otevře spravovanou instanci.
+Obsazené porty se přeskočí. Zastavení ověřuje cestu, příkaz a čas vzniku procesu
+před ukončením jeho stromu; ručně spuštěné starší instance zůstávají nedotčené.
+Stav a diagnostika patří do ignorované složky `temp/`. Uživatel musí před
+zastavením uložit oba projekty. Rozcestník nepotřebuje JavaScript ani síťová písma.
+
+Automatický test spouští skutečné skripty v izolované složce s mezerami, ověřuje
+opakování, obsazený port, odmítnutí nesprávné identity a zastavení. Odkazy a obsah
+rozcestníku kontroluje test DOM. Ruční kontrolu v prohlížeči zablokovalo odmítnuté
+oprávnění nástroje; dostupnost všech tří stránek ověřena přes HTTP.
+
+**Odkazy:** [Úkol 7](https://github.com/ByPS128/LitophanyStlGenerator/issues/7),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1),
+[úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3)
+a [úkol 5](https://github.com/ByPS128/LitophanyStlGenerator/issues/5).
+
+
 ## 2026-11-08 — Volba přední a zadní integrace Měsíce
 
 **Co:** Kulový editor nabízí změnu vnitřní nebo vnější stěny. Volba platí pro

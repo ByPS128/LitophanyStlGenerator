@@ -7,7 +7,7 @@ import {setControlState,moonControlReason,CONTROL_HELP,layerOrderNote,LAYER_REAS
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
+<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/">Rozcestník</a><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
 <main><section class="workspace">
   <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Nový projekt</button></div>
   <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo založ nový projekt s ukázkovým motivem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
