@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {fitPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate} from './flat-model';
+import {fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate} from './flat-model';
 import {kelvinColor} from './model';
 
 const plate={width:150,height:100,border_enabled:true,border_mm:5} as Plate;
@@ -20,6 +20,36 @@ describe('flat placement',()=>{
     const p={x_mm:0,y_mm:0,width_mm:40,height_mm:20,angle_deg:0,strength:1};
     expect(()=>fitPlacement(p,{...plate,border_mm:60})).toThrow();
     expect(()=>fitPlacement({...p,width_mm:NaN},plate)).toThrow();
+  });
+});
+describe('resizing at the protected frame',()=>{
+  const initial={x_mm:0,y_mm:0,width_mm:80,height_mm:60,angle_deg:0,strength:1};
+  it('stops width at the frame without changing height or center, even on repeated movement outside',()=>{
+    let p=initial;
+    for(const requested of [150,200,500,1000]){
+      p=resizeFlatPlacement(p,plate,'width_mm',requested);
+      expect(p.width_mm).toBeCloseTo(140);expect(p.height_mm).toBe(60);
+      expect([p.x_mm,p.y_mm]).toEqual([0,0]);
+    }
+    p=resizeFlatPlacement(p,plate,'width_mm',100);
+    expect(p.width_mm).toBe(100);expect(p.height_mm).toBe(60);
+  });
+  it('stops height without changing width and respects an off-center anchor',()=>{
+    const p=resizeFlatPlacement({...initial,y_mm:10},plate,'height_mm',300);
+    expect(p.height_mm).toBeCloseTo(70);expect(p.width_mm).toBe(80);expect(p.y_mm).toBe(10);
+  });
+  it.each([30,90,-45])('preserves the other dimension of a rotated layer (%s degrees)',angle=>{
+    const start=fitPlacement({...initial,angle_deg:angle},plate);
+    const p=resizeFlatPlacement(start,plate,'width_mm',500);
+    expect(p.height_mm).toBe(start.height_mm);
+    const c=Math.abs(Math.cos(angle*Math.PI/180)),s=Math.abs(Math.sin(angle*Math.PI/180));
+    expect(c*p.width_mm+s*p.height_mm).toBeLessThanOrEqual(140+1e-8);
+    expect(s*p.width_mm+c*p.height_mm).toBeLessThanOrEqual(90+1e-8);
+  });
+  it('changes both dimensions only when aspect locking is requested',()=>{
+    const p=resizeFlatPlacement(initial,plate,'width_mm',500,true);
+    expect(p.width_mm/p.height_mm).toBeCloseTo(80/60);
+    expect(p.width_mm).toBeCloseTo(120);expect(p.height_mm).toBeCloseTo(90);
   });
 });
 describe('flat lighting',()=>{

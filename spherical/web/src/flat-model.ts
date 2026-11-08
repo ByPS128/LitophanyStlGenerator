@@ -18,6 +18,24 @@ export function fitPlacement(p:FlatPlacement,plate:Plate):FlatPlacement{
   return {...p,width_mm:w,height_mm:h,x_mm:clamp(p.x_mm,-availableX/2+hx,availableX/2-hx),y_mm:clamp(p.y_mm,-availableY/2+hy,availableY/2-hy)};
 }
 
+// Resize around the current center. Hitting the frame must not shrink the other axis.
+export function resizeFlatPlacement(p:FlatPlacement,plate:Plate,axis:'width_mm'|'height_mm',requested:number,lockAspect=false):FlatPlacement{
+  if(!Number.isFinite(requested)||requested<=0)throw new Error('Neplatný rozměr vrstvy.');
+  const b=plate.border_enabled?plate.border_mm:0;
+  const roomX=plate.width-2*b-2*Math.abs(p.x_mm),roomY=plate.height-2*b-2*Math.abs(p.y_mm);
+  const angle=p.angle_deg*Math.PI/180,c=Math.abs(Math.cos(angle)),s=Math.abs(Math.sin(angle));
+  if(lockAspect){
+    const scale=Math.min(requested/p[axis],roomX/(c*p.width_mm+s*p.height_mm),roomY/(s*p.width_mm+c*p.height_mm));
+    return {...p,width_mm:p.width_mm*scale,height_mm:p.height_mm*scale};
+  }
+  const coefficientX=axis==='width_mm'?c:s,coefficientY=axis==='width_mm'?s:c;
+  const other=axis==='width_mm'?p.height_mm:p.width_mm;
+  const remainingX=roomX-(axis==='width_mm'?s:c)*other;
+  const remainingY=roomY-(axis==='width_mm'?c:s)*other;
+  const maximum=Math.min(coefficientX>1e-10?remainingX/coefficientX:Infinity,coefficientY>1e-10?remainingY/coefficientY:Infinity);
+  return {...p,[axis]:Math.max(1e-6,Math.min(requested,maximum))};
+}
+
 export function decodeFlatGrid(buffer:ArrayBuffer):Grid{
   if(buffer.byteLength<8)throw new Error('Neúplný výstup .NET.');
   const view=new DataView(buffer),w=view.getUint32(0,true),h=view.getUint32(4,true);

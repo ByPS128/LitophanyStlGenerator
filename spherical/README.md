@@ -67,8 +67,10 @@ zmenší se zachováním poměru stran. Ochrana platí i pro celý natočený ob
 PNG, včetně jeho průhledných částí; algoritmus nehledá těsný obrys objektu.
 
 Ctrl + klik/tažení posouvá střed v rovině desky. Tyrkysové úchyty mění rozměry,
-zlatý natočení; Shift zachovává poměr stran také v číselných polích. Původní
-.NET algoritmy generují tloušťku a vyhlazení. Rozlišení FDM se počítá původním
+zlatý natočení; Shift zachovává poměr stran také v číselných polích.
+Při zvětšování motivu se tažený rozměr zastaví na chráněném okraji; druhý
+rozměr a střed zůstávají beze změny. Se Shiftem se omezí oba rozměry společně.
+Původní .NET algoritmy generují tloušťku a vyhlazení. Rozlišení FDM se počítá původním
 vzorcem z trysky a poměru bod/tryska, pro pryskyřici se zadává počet vzorků/mm.
 Průměr trysky neurčuje automaticky bezpečnou minimální tloušťku modelu.
 

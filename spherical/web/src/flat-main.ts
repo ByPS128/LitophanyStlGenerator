@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {fitPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate,type FlatLayer,type Grid} from './flat-model';
+import {fitPlacement,resizeFlatPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate,type FlatLayer,type Grid} from './flat-model';
 import {defaultImageSettings,hexColor,parseHex} from './image-settings';
 import {kelvinColor} from './model';
 import './style.css';
@@ -162,10 +162,11 @@ for(const id of [...Object.keys(plateFields),'border-enabled','print-mode','smoo
 });
 for(const [id,key] of Object.entries(placementFields))el(id).addEventListener('input',()=>{
   const layer=selected();if(!layer)return;
-  try{const previous=layer.placement,next={...previous,[key]:val(id)};
-    if(shift&&key==='width_mm')next.height_mm=next.width_mm*previous.height_mm/previous.width_mm;
-    if(shift&&key==='height_mm')next.width_mm=next.height_mm*previous.width_mm/previous.height_mm;
-    layer.placement=fitPlacement(next,plate);writeLayer();changed();
+  try{const previous=layer.placement;
+    layer.placement=key==='width_mm'||key==='height_mm'
+      ?resizeFlatPlacement(previous,plate,key,val(id),shift)
+      :fitPlacement({...previous,[key]:val(id)},plate);
+    writeLayer();changed();
   }catch(error){status(String(error),true);}
 });
 el('strength').oninput=()=>{const layer=selected();if(layer){layer.placement.strength=val('strength')/100;writeLayer();changed();}};
@@ -232,11 +233,11 @@ el('image-preview').onclick=event=>{
 let dragging:string|null=null;
 function pointer(event:PointerEvent){const rect=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),camera);return raycaster.ray.intersectPlane(plane,new THREE.Vector3());}
 function place(event:PointerEvent){const layer=selected(),point=pointer(event);if(!layer||!point)return;const p={...layer.placement},a=p.angle_deg*Math.PI/180,dx=point.x-p.x_mm,dy=point.y-p.y_mm;
-  if(dragging==='width'){p.width_mm=Math.max(.1,2*Math.abs(Math.cos(a)*dx+Math.sin(a)*dy));if(event.shiftKey)p.height_mm=p.width_mm*layer.placement.height_mm/layer.placement.width_mm;}
-  else if(dragging==='height'){p.height_mm=Math.max(.1,2*Math.abs(-Math.sin(a)*dx+Math.cos(a)*dy));if(event.shiftKey)p.width_mm=p.height_mm*layer.placement.width_mm/layer.placement.height_mm;}
+  if(dragging==='width')Object.assign(p,resizeFlatPlacement(p,plate,'width_mm',Math.max(.1,2*(Math.cos(a)*dx+Math.sin(a)*dy)),event.shiftKey));
+  else if(dragging==='height')Object.assign(p,resizeFlatPlacement(p,plate,'height_mm',Math.max(.1,2*(-Math.sin(a)*dx+Math.cos(a)*dy)),event.shiftKey));
   else if(dragging==='angle')p.angle_deg=((Math.atan2(dy,dx)*180/Math.PI-90+540)%360)-180;
   else{p.x_mm=point.x;p.y_mm=point.y;}
-  layer.placement=fitPlacement(p,plate);writeLayer();changed();orbit.enabled=false;
+  layer.placement=dragging==='width'||dragging==='height'?p:fitPlacement(p,plate);writeLayer();changed();orbit.enabled=false;
 }
 renderer.domElement.addEventListener('pointerdown',event=>{
   if(busy||!selectedId||event.button!==0)return;pointer(event);const hit=raycaster.intersectObjects(guides.children).find(h=>h.object.userData.kind);
