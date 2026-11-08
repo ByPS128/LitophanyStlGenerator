@@ -16,8 +16,8 @@ document.querySelector('#app')!.innerHTML=`
 <section><div class="section-title"><span>01</span><h2>Deska a chráněný okraj</h2></div><div class="fields">
 ${numeric('plate-width','Celková šířka (mm)',150,10,1000)}${numeric('plate-height','Celková výška (mm)',100,10,1000)}</div>
 <label class="checkbox"><input id="border-enabled" type="checkbox" checked> Okraj pro uchycení do rámečku</label>
-${numeric('border-mm','Šířka okraje na každé straně (mm)',5,0,499,.5)}<p id="area" class="hint"></p>
-<p class="hint">Okraj je součástí celkových rozměrů. Má maximální tloušťku desky a zůstává bez motivu. Vrstvy držíme celé uvnitř obrazové plochy.</p>
+<div class="fields">${numeric('border-mm','Šířka lemu (mm)',5,0,499,.5)}${numeric('border-height-mm','Výška lemu (mm)',.6,.1,20,.05)}</div><p id="area" class="hint"></p>
+<p class="hint">Šířka lemu ubírá obrazovou plochu po obvodu. Výška lemu určuje tloušťku v ose Z pro zasunutí do rámečku; je nezávislá na tloušťkách obrázku. Lem zůstává bez motivu.</p>
 <div class="fields">${numeric('min-mm','Minimum tloušťky (mm)',.6,.1,10,.05)}${numeric('max-mm','Maximum tloušťky (mm)',3.6,.2,20,.05)}</div></section>
 <section><div class="section-title"><span>02</span><h2>Obrazové vrstvy</h2></div>
 <div class="fields"><button id="add-file">＋ Z počítače</button><button id="add-url">＋ Z URL</button></div>
@@ -25,6 +25,7 @@ ${numeric('border-mm','Šířka okraje na každé straně (mm)',5,0,499,.5)}<p i
 <label class="layer-name">Název vrstvy<input id="layer-name" maxlength="250"></label>
 <div class="layer-actions"><button id="up">↑</button><button id="down">↓</button><button id="copy">Duplikovat</button><button id="remove">Odebrat</button></div>
 <div class="fields"><button id="replace-file">Změnit z počítače</button><button id="replace-url">Změnit z URL</button></div>
+<label class="checkbox"><input id="allow-overflow" type="checkbox"> Povolit přesah obrázků a oříznout</label><p class="hint">Platí pro všechny vrstvy. Přesah za obrazovou plochu se nevytiskne, lem zůstane zachovaný. Po vypnutí se vrstvy znovu vejdou celé dovnitř.</p>
 <div id="layer-controls"><div class="fields">${numeric('x-mm','Střed X (mm)',0,-1000,1000,.5)}${numeric('y-mm','Střed Y (mm)',0,-1000,1000,.5)}${numeric('width-mm','Šířka motivu (mm)',100,.1,1000,.5)}${numeric('height-mm','Výška motivu (mm)',75,.1,1000,.5)}</div>
 <label class="range">Natočení <output id="angle-output"></output><input id="angle-deg" type="range" min="-180" max="180" value="0"></label>
 <label class="range">Dominance <output id="strength-output"></output><input id="strength" type="range" min="0" max="100" value="100"></label></div></section>
@@ -86,8 +87,8 @@ async function work(text:string,action:()=>Promise<void>){
   try{if(previewPromise)await previewPromise;await action();}catch(error){status(error instanceof Error?error.message:String(error),true);}
   finally{busy=false;el('busy').hidden=true;controls();}
 }
-const plateFields:Record<string,keyof Plate>={'plate-width':'width','plate-height':'height','min-mm':'min_mm','max-mm':'max_mm','border-mm':'border_mm','nozzle-mm':'nozzle_mm','pixel-ratio':'pixel_ratio','resin-resolution':'resin_resolution',sigma:'sigma',threshold:'threshold',window:'window',spatial:'spatial',range:'range'};
-function writePlate(){for(const [id,key] of Object.entries(plateFields))set(id,plate[key] as number);el<HTMLInputElement>('border-enabled').checked=plate.border_enabled;set('print-mode',plate.print_mode);set('smoothing',plate.smoothing);set('resample',plate.resample);}
+const plateFields:Record<string,keyof Plate>={'plate-width':'width','plate-height':'height','min-mm':'min_mm','max-mm':'max_mm','border-mm':'border_mm','border-height-mm':'border_height_mm','nozzle-mm':'nozzle_mm','pixel-ratio':'pixel_ratio','resin-resolution':'resin_resolution',sigma:'sigma',threshold:'threshold',window:'window',spatial:'spatial',range:'range'};
+function writePlate(){for(const [id,key] of Object.entries(plateFields))set(id,plate[key] as number);el<HTMLInputElement>('border-enabled').checked=plate.border_enabled;el<HTMLInputElement>('allow-overflow').checked=plate.allow_overflow;set('print-mode',plate.print_mode);set('smoothing',plate.smoothing);set('resample',plate.resample);}
 function composition(){return {plate:structuredClone(plate),layers:structuredClone(layers)};}
 function lights(){material.uniforms.brightness.value=val('brightness')/100;material.uniforms.color.value.copy(kelvinColor(val('kelvin')));material.uniforms.attenuation.value=val('attenuation');}
 function sceneSettings(){return {brightness:val('brightness')/100,kelvin:val('kelvin'),attenuation:val('attenuation'),camera:camera.position.toArray(),target:orbit.target.toArray(),mode:material.uniforms.mode.value};}
@@ -96,7 +97,7 @@ el('home').onclick=home;
 function redrawGuides(){
   for(const child of [...guides.children]){guides.remove(child);const object=child as THREE.Mesh;object.geometry?.dispose();const m=object.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m?.dispose();}
   const draw=(points:THREE.Vector3[],color:number)=>{const line=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color,depthTest:false}));line.renderOrder=5;guides.add(line);};
-  const b=plate.border_enabled?plate.border_mm:0,z=plate.max_mm+.2;
+  const b=plate.border_enabled?plate.border_mm:0,z=Math.max(plate.max_mm,plate.border_enabled?plate.border_height_mm:0)+.2;
   if(b)draw([new THREE.Vector3(-plate.width/2+b,-plate.height/2+b,z),new THREE.Vector3(plate.width/2-b,-plate.height/2+b,z),new THREE.Vector3(plate.width/2-b,plate.height/2-b,z),new THREE.Vector3(-plate.width/2+b,plate.height/2-b,z)],0xc9a06c);
   const layer=selected();if(!layer||!layer.enabled)return;const p=layer.placement,a=p.angle_deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
   const point=(x:number,y:number)=>new THREE.Vector3(p.x_mm+c*x-s*y,p.y_mm+s*x+c*y,z+.2);
@@ -108,7 +109,7 @@ function redrawGuides(){
 function updateInfo(){
   const b=plate.border_enabled?plate.border_mm:0;el('area').textContent=`Obrazová plocha ${Math.round((plate.width-2*b)*100)/100} × ${Math.round((plate.height-2*b)*100)/100} mm.`;
   el('model-info').textContent=`Deska ${plate.width} × ${plate.height} mm · ${layers.length} obrazových vrstev · původní .NET jádro`;
-  plane.constant=-plate.max_mm;material.uniforms.minimum.value=plate.min_mm;material.uniforms.maximum.value=plate.max_mm;redrawGuides();
+  plane.constant=-Math.max(plate.max_mm,plate.border_enabled?plate.border_height_mm:0);material.uniforms.minimum.value=plate.min_mm;material.uniforms.maximum.value=plate.max_mm;redrawGuides();
 }
 function showGrid(grid:Grid){mesh.geometry.dispose();mesh.geometry=plateGeometry(grid);updateInfo();}
 function changed(){
@@ -152,10 +153,10 @@ async function load(info:any,reset=false){
   const data=await(await request('preview',composition())).json();showGrid(data);el('quality').textContent='Rychlý náhled bez vyhlazení';
   if(!info.bridge_available)status('Chybí sestavený .NET adaptér. Spusť Start-Luna.ps1.',true);
 }
-for(const id of [...Object.keys(plateFields),'border-enabled','print-mode','smoothing','resample'])el(id).addEventListener('change',()=>{
+for(const id of [...Object.keys(plateFields),'border-enabled','allow-overflow','print-mode','smoothing','resample'])el(id).addEventListener('change',()=>{
   try{
     const candidate={...plate};for(const [field,key] of Object.entries(plateFields))(candidate as any)[key]=val(field);
-    candidate.border_enabled=checked('border-enabled');candidate.print_mode=el<HTMLSelectElement>('print-mode').value;candidate.smoothing=el<HTMLSelectElement>('smoothing').value;candidate.resample=el<HTMLSelectElement>('resample').value;
+    candidate.border_enabled=checked('border-enabled');candidate.allow_overflow=checked('allow-overflow');candidate.print_mode=el<HTMLSelectElement>('print-mode').value;candidate.smoothing=el<HTMLSelectElement>('smoothing').value;candidate.resample=el<HTMLSelectElement>('resample').value;
     if(!Object.values(candidate).filter(v=>typeof v==='number').every(Number.isFinite)||candidate.min_mm>=candidate.max_mm)throw new Error('Zkontroluj rozměry a meze tloušťky.');
     const updated=layers.map(layer=>({...layer,placement:fitPlacement(layer.placement,candidate)}));plate=candidate;layers=updated;writeLayer();changed();
   }catch(error){status(String(error),true);writePlate();}

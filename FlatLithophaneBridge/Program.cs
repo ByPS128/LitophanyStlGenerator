@@ -30,6 +30,7 @@ public sealed class FlatRequest
     public double Minimum { get; set; }
     public double Maximum { get; set; }
     public double Border { get; set; }
+    public double? BorderHeight { get; set; }
     public double[] X { get; set; } = [];
     public double[] Y { get; set; } = [];
     public string Smoothing { get; set; } = "BilateralFilter";
@@ -50,6 +51,9 @@ public static class FlatGenerator
             r.Maximum > 20 || r.Minimum >= r.Maximum || !double.IsFinite(r.Border) ||
             r.Border < 0 || 2*r.Border >= Math.Min(r.Width, r.Height))
             throw new ArgumentException("Invalid plate dimensions or thickness.");
+        double borderHeight=r.BorderHeight ?? r.Maximum;
+        if (!double.IsFinite(borderHeight) || borderHeight < .1 || borderHeight > 20)
+            throw new ArgumentException("Invalid rim height.");
         ValidateGrid(r.X, r.Width); ValidateGrid(r.Y, r.Height);
         if ((long)r.X.Length*r.Y.Length > 600_000) throw new ArgumentException("Too many samples (maximum 600000).");
         if (r.Resample is not ("Bicubic" or "Bilinear")) throw new ArgumentException("Unsupported resampling.");
@@ -75,7 +79,7 @@ public static class FlatGenerator
             // The exact border nodes are part of the grid. Smoothing cannot invade the frame.
             bool border = r.Border > 0 && (r.X[x] <= r.Border || r.X[x] >= r.Width-r.Border ||
                                            r.Y[y] <= r.Border || r.Y[y] >= r.Height-r.Border);
-            heights[y,x] = border ? r.Maximum : Math.Clamp(heights[y,x], r.Minimum, r.Maximum);
+            heights[y,x] = border ? borderHeight : Math.Clamp(heights[y,x], r.Minimum, r.Maximum);
             if (!double.IsFinite(heights[y,x])) throw new ArgumentException("Non-finite height.");
         }
         var mesh = ClosedSurface(heights, r);

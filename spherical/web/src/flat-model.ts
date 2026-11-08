@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type {ImageSettings} from './image-settings';
 
-export interface Plate {width:number;height:number;min_mm:number;max_mm:number;border_enabled:boolean;border_mm:number;
+export interface Plate {width:number;height:number;min_mm:number;max_mm:number;border_enabled:boolean;border_mm:number;border_height_mm:number;allow_overflow:boolean;
   print_mode:string;nozzle_mm:number;pixel_ratio:number;resin_resolution:number;smoothing:string;resample:string;
   sigma:number;threshold:number;window:number;spatial:number;range:number;}
 export interface FlatPlacement {x_mm:number;y_mm:number;width_mm:number;height_mm:number;angle_deg:number;strength:number;}
@@ -11,6 +11,7 @@ export function fitPlacement(p:FlatPlacement,plate:Plate):FlatPlacement{
   if(!Object.values(p).every(Number.isFinite)||p.width_mm<=0||p.height_mm<=0)throw new Error('Neplatné rozměry nebo umístění vrstvy.');
   const border=plate.border_enabled?plate.border_mm:0,availableX=plate.width-2*border,availableY=plate.height-2*border;
   if(availableX<=1||availableY<=1)throw new Error('Okraj musí ponechat alespoň 1 mm obrazové plochy.');
+  if(plate.allow_overflow)return {...p};
   const angle=p.angle_deg*Math.PI/180,c=Math.abs(Math.cos(angle)),s=Math.abs(Math.sin(angle));
   const scale=Math.min(1,availableX/(c*p.width_mm+s*p.height_mm),availableY/(s*p.width_mm+c*p.height_mm));
   const w=p.width_mm*scale,h=p.height_mm*scale,hx=(c*w+s*h)/2,hy=(s*w+c*h)/2;
@@ -21,6 +22,10 @@ export function fitPlacement(p:FlatPlacement,plate:Plate):FlatPlacement{
 // Resize around the current center. Hitting the frame must not shrink the other axis.
 export function resizeFlatPlacement(p:FlatPlacement,plate:Plate,axis:'width_mm'|'height_mm',requested:number,lockAspect=false):FlatPlacement{
   if(!Number.isFinite(requested)||requested<=0)throw new Error('Neplatný rozměr vrstvy.');
+  if(plate.allow_overflow){
+    const size=Math.min(requested,10000),scale=Math.min(size/p[axis],10000/p.width_mm,10000/p.height_mm);
+    return lockAspect?{...p,width_mm:p.width_mm*scale,height_mm:p.height_mm*scale}:{...p,[axis]:size};
+  }
   const b=plate.border_enabled?plate.border_mm:0;
   const roomX=plate.width-2*b-2*Math.abs(p.x_mm),roomY=plate.height-2*b-2*Math.abs(p.y_mm);
   const angle=p.angle_deg*Math.PI/180,c=Math.abs(Math.cos(angle)),s=Math.abs(Math.sin(angle));

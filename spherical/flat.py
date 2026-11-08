@@ -16,7 +16,7 @@ from project_config import defaults
 from remote_images import download_image
 
 BRIDGE = Path(__file__).resolve().parents[1]/'FlatLithophaneBridge/bin/Release/net8.0/FlatLithophaneBridge.dll'
-DEFAULTS = dict(width=150, height=100, min_mm=.6, max_mm=3.6, border_enabled=True, border_mm=5,
+DEFAULTS = dict(width=150, height=100, min_mm=.6, max_mm=3.6, border_enabled=True, border_mm=5, border_height_mm=.6, allow_overflow=False,
                 print_mode='FDM', nozzle_mm=.4, pixel_ratio=.8, resin_resolution=3,
                 smoothing='BilateralFilter', resample='Bicubic', sigma=2, threshold=.5,
                 window=3, spatial=1, range=1)
@@ -33,8 +33,11 @@ def number(value, low, high, name):
 
 def plate_settings(data):
     p = {key:data.get(key, value) for key,value in DEFAULTS.items()}
+    # Archives from before adjustable rims used the plate maximum for rim height.
+    if data and 'border_height_mm' not in data:
+        p['border_height_mm']=data.get('max_mm',DEFAULTS['max_mm'])
     for key,lo,hi in [('width',10,1000),('height',10,1000),('min_mm',.1,10),('max_mm',.2,20),
-                      ('border_mm',0,499),('nozzle_mm',.1,2),('pixel_ratio',.5,1),('resin_resolution',1,20),
+                      ('border_mm',0,499),('border_height_mm',.1,20),('nozzle_mm',.1,2),('pixel_ratio',.5,1),('resin_resolution',1,20),
                       ('sigma',.1,10),('threshold',.1,2),('window',3,15),('spatial',.1,5),('range',.1,5)]:
         p[key] = number(p[key],lo,hi,key)
     for key in ('width','height','resin_resolution','window'):
@@ -43,7 +46,7 @@ def plate_settings(data):
         p[key] = int(p[key])
     if p['window']%2 != 1 or p['min_mm'] >= p['max_mm']:
         raise ValueError('Neplatné meze tloušťky nebo sudé okno mediánu.')
-    if type(p['border_enabled']) is not bool:
+    if type(p['border_enabled']) is not bool or type(p['allow_overflow']) is not bool:
         raise ValueError('Zapnutí okraje musí být ano/ne.')
     if p['border_enabled'] and 2*p['border_mm'] >= min(p['width'],p['height'])-1:
         raise ValueError('Okraj musí ponechat alespoň 1 mm obrazové plochy.')
@@ -65,6 +68,8 @@ def fit_placement(data, p):
     result = {key:number(data[key],lo,hi,key) for key,lo,hi in
               [('x_mm',-10000,10000),('y_mm',-10000,10000),('width_mm',.1,10000),
                ('height_mm',.1,10000),('angle_deg',-180,180),('strength',0,1)]}
+    if p['allow_overflow']:
+        return result
     angle = math.radians(result['angle_deg'])
     c,s = abs(math.cos(angle)),abs(math.sin(angle))
     w,h = result['width_mm'],result['height_mm']
@@ -107,6 +112,10 @@ def compose(store, layers, p, x, y):
         tone=map_coordinates(image[...,0],coordinates,order=1,mode='nearest')*inside*placement['strength']
         alpha=map_coordinates(image[...,1],coordinates,order=1,mode='nearest')*inside*placement['strength']
         darkness=darkness*(1-alpha)+tone
+    # Clip before filtering as well as protecting the final rim after filtering.
+    b=border(p)
+    if b>0:
+        darkness[(x[None,:]<=b)|(x[None,:]>=p['width']-b)|(y[:,None]<=b)|(y[:,None]>=p['height']-b)]=0
     # Quantize once: preview and .NET consume the identical luminance values.
     gray=np.rint((1-np.clip(darkness,0,1))*255).astype(np.uint8)
     return gray
@@ -196,7 +205,7 @@ class FlatState:
         b=border(self.plate)
         if b>0:
             protected=(x[None,:]<=b)|(x[None,:]>=self.plate['width']-b)|(y[:,None]<=b)|(y[:,None]>=self.plate['height']-b)
-            heights[protected]=self.plate['max_mm']
+            heights[protected]=self.plate['border_height_mm']
         return {**self.info(),'x':x.tolist(),'y':y.tolist(),'heights':heights.ravel().tolist()}
 
     def calculate(self,data):
@@ -210,7 +219,7 @@ class FlatState:
         image=directory/'composite.png'
         Image.fromarray(gray).save(image)
         request=dict(Image=str(image),Width=p['width'],Height=p['height'],Minimum=p['min_mm'],Maximum=p['max_mm'],
-                     Border=border(p),X=x.tolist(),Y=y.tolist(),Smoothing=p['smoothing'],Resample=p['resample'],
+                     Border=border(p),BorderHeight=p['border_height_mm'],X=x.tolist(),Y=y.tolist(),Smoothing=p['smoothing'],Resample=p['resample'],
                      Sigma=p['sigma'],Threshold=p['threshold'],Window=p['window'],Spatial=p['spatial'],Range=p['range'])
         path=directory/'request.json'
         path.write_text(json.dumps(request),encoding='utf-8')

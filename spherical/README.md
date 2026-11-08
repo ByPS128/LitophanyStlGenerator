@@ -60,11 +60,20 @@ odebírat, přejmenovat, skrývat a přeuspořádat vrstvy. Úpravy do šedi, ko
 gama, úrovně, inverze a výběr barvy pozadí se počítají samostatně pro každou vrstvu.
 
 Zadaná šířka a výška jsou **vnější rozměry desky včetně okraje**. Například
-150 × 100 mm a okraj 5 mm znamenají obrazovou plochu 140 × 90 mm. Okraj má
-maximální tloušťku desky, lze jej vypnout a motiv do něj nesmí vstoupit.
+150 × 100 mm a šířka lemu 5 mm znamenají obrazovou plochu 140 × 90 mm.
+**Výška lemu** je samostatný rozměr v ose Z (0,1–20 mm), nezávislý na minimu
+a maximu obrázku. Nový projekt začíná lemem vysokým 0,6 mm; starší projekty bez
+této vlastnosti zachovají dřívější výšku rovnou maximu obrázku. Lem lze vypnout.
+Motiv do něj nikdy nezasahuje, ani po vyhlazení.
 Při posunutí, otočení nebo změně desky se vrstva přesune dovnitř a případně
 zmenší se zachováním poměru stran. Ochrana platí i pro celý natočený obdélník
 PNG, včetně jeho průhledných částí; algoritmus nehledá těsný obrys objektu.
+
+Zaškrtávátko **„Povolit přesah obrázků a oříznout“** ruší omezení polohy,
+natočení a rozměrů vrstev hranicí obrazové plochy. Lze tak zvětšit i natočený
+motiv přes okraje; přesah se ořízne, celkové rozměry STL a lem zůstanou zachované.
+Platí pro celý projekt. Po vypnutí se vrstvy znovu přizpůsobí dovnitř. Obě nové
+vlastnosti (přesah a výška lemu) se ukládají do `.luna` a platí pro náhled i STL.
 
 Ctrl + klik/tažení posouvá střed v rovině desky. Tyrkysové úchyty mění rozměry,
 zlatý natočení; Shift zachovává poměr stran také v číselných polích.

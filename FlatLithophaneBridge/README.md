@@ -12,13 +12,17 @@ dotnet FlatLithophaneBridge/bin/Release/net8.0/FlatLithophaneBridge.dll request.
 ```
 
 Vstup `FlatRequest` v `Program.cs` obsahuje cestu ke složenému šedému PNG, fyzické
-rozměry, minimální/maximální tloušťku, šířku okraje, pole souřadnic `X`/`Y`
+rozměry, minimální/maximální tloušťku, šířku okraje, jeho nezávislou výšku
+`BorderHeight`, pole souřadnic `X`/`Y`
 a parametry vyhlazování. Souřadnice zahrnují přesné hranice okraje. Složení vrstev
 a jejich nedestruktivní úpravy zajišťuje `spherical/flat.py`; .NET dostává jasovou
 kompozici ve výsledném počtu vzorků. Původní převzorkování tedy v této cestě
 nezmění velikost obrázku. Vrstvy se na cílové mřížce vzorkují bilineárně.
 
-Adaptér po vyhlazení nastaví chráněné uzly okraje na maximální tloušťku. Převzaté
+Adaptér po vyhlazení nastaví chráněné uzly okraje na `BorderHeight` (0,1–20 mm),
+která smí být mimo rozsah tlouštěk obrázku. Pro staré požadavky bez této
+vlastnosti použije maximum. Kompozitor před vyhlazením odřízne přesah obrázků
+za obrazovou plochu, takže neovlivňuje vyhlazování přes motiv na lemu. Převzaté
 trojúhelníky horního povrchu opraví do os X = šířka, Y = výška, Z = tloušťka
 a na přesný vnější rozměr. Původní převodník používá krok rozměr / počet bodů,
 takže sám končí o jeden krok před zadanou velikostí. Původní základna ze dvou

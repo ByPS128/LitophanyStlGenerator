@@ -1,5 +1,20 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Přesah obrázků a samostatná výška lemu
+
+**Co:** Plochý editor umožňuje volitelně přesahovat obrazovou plochu a motiv
+oříznout. Lem má samostatnou šířku a výšku pro zasunutí do připraveného rámečku.
+
+**Jak:** `allow_overflow` vypne omezování transformací ve vrstvě rozhraní i na
+serveru. Kompozice je oříznutá před filtrováním; po něm .NET znovu nastaví přesnou
+výšku chráněných uzlů lemu. `border_height_mm` je nezávislá na min/max motivu.
+Nové projekty mají výšku lemu 0,6 mm, starší soubory bez nového pole zachovávají
+původní maximum. Nastavení se ukládají do projektu. Testy skutečných STL ověřily
+nízký i vysoký lem se všemi filtry, přesné vnější rozměry a uzavřenost sítě.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+[PR 4](https://github.com/ByPS128/LitophanyStlGenerator/pull/4).
+
 ## 2026-11-08 — Ploché litofánie s původním .NET jádrem
 
 **Co:** Přidán samostatný plochý editor s vrstvami, obrázky z počítače/URL,

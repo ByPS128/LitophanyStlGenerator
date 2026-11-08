@@ -52,6 +52,24 @@ describe('resizing at the protected frame',()=>{
     expect(p.width_mm).toBeCloseTo(120);expect(p.height_mm).toBeCloseTo(90);
   });
 });
+describe('optional overflow cropping',()=>{
+  const outside={x_mm:120,y_mm:-80,width_mm:400,height_mm:200,angle_deg:45,strength:1};
+  it('keeps size, rotation and center outside the plate when enabled',()=>{
+    expect(fitPlacement(outside,{...plate,allow_overflow:true})).toEqual(outside);
+    const enlarged=resizeFlatPlacement(outside,{...plate,allow_overflow:true},'width_mm',800);
+    expect(enlarged.width_mm).toBe(800);expect(enlarged.height_mm).toBe(200);
+    expect([enlarged.x_mm,enlarged.y_mm]).toEqual([120,-80]);
+  });
+  it('keeps aspect when resizing beyond the plate with Shift',()=>{
+    const enlarged=resizeFlatPlacement(outside,{...plate,allow_overflow:true},'height_mm',600,true);
+    expect(enlarged.width_mm).toBe(1200);expect(enlarged.height_mm).toBe(600);
+  });
+  it('fits the full rotated layer again when overflow is disabled',()=>{
+    const p=fitPlacement(outside,{...plate,allow_overflow:false});
+    expect(p.width_mm).toBeLessThan(outside.width_mm);
+    expect(p.width_mm/p.height_mm).toBeCloseTo(2);
+  });
+});
 describe('flat lighting',()=>{
   it.each([2200,3000,7500])('passes finite RGB components to the shader at %s K',kelvin=>{
     const material=flatMaterial(),expected=kelvinColor(kelvin);
