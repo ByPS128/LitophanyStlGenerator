@@ -55,7 +55,7 @@ export function plateGeometry(grid:Grid):THREE.BufferGeometry{
 }
 
 export function flatMaterial():THREE.ShaderMaterial{
-  return new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{mode:{value:1},brightness:{value:1},attenuation:{value:.78},color:{value:new THREE.Color(1,.7,.4)},minimum:{value:.6},maximum:{value:3.6}},
+  return new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{mode:{value:1},brightness:{value:1},attenuation:{value:.78},color:{value:new THREE.Vector3(1,.7,.4)},minimum:{value:.6},maximum:{value:3.6}},
     vertexShader:`attribute float thickness;varying float wall;varying vec3 normalView;void main(){wall=thickness;normalView=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform int mode;uniform float brightness;uniform float attenuation;uniform vec3 color;uniform float minimum;uniform float maximum;varying float wall;varying vec3 normalView;
     void main(){vec3 result;float shade=.35+.65*abs(dot(normalize(normalView),normalize(vec3(.3,.6,1.))));

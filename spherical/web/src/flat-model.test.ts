@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
-import {fitPlacement,decodeFlatGrid,plateGeometry,type Plate} from './flat-model';
+import {fitPlacement,decodeFlatGrid,plateGeometry,flatMaterial,type Plate} from './flat-model';
+import {kelvinColor} from './model';
 
 const plate={width:150,height:100,border_enabled:true,border_mm:5} as Plate;
 describe('flat placement',()=>{
@@ -19,6 +20,18 @@ describe('flat placement',()=>{
     const p={x_mm:0,y_mm:0,width_mm:40,height_mm:20,angle_deg:0,strength:1};
     expect(()=>fitPlacement(p,{...plate,border_mm:60})).toThrow();
     expect(()=>fitPlacement({...p,width_mm:NaN},plate)).toThrow();
+  });
+});
+describe('flat lighting',()=>{
+  it.each([2200,3000,7500])('passes finite RGB components to the shader at %s K',kelvin=>{
+    const material=flatMaterial(),expected=kelvinColor(kelvin);
+    // Same update as the UI: Color.copy(Vector3) silently produces undefined RGB values.
+    material.uniforms.color.value.copy(expected);
+    const uploaded=material.uniforms.color.value.toArray();
+    expect(uploaded.every((component:number)=>Number.isFinite(component))).toBe(true);
+    expect(uploaded).toEqual(expected.toArray());
+    expect(uploaded.some((component:number)=>component>0)).toBe(true);
+    material.dispose();
   });
 });
 describe('flat geometry',()=>{
