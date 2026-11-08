@@ -202,3 +202,11 @@ ASALocalRun/
 # c.f. http://www.westwind.com/reference/os-x/invisibles.html
 *.swp
 /temp/*
+
+# Local spherical editor environment, build output and user-owned source models
+.venv/
+.pytest_cache/
+spherical/web/dist/
+spherical/output/
+LithophaneStlGenerator/Sources/
+.serena/
