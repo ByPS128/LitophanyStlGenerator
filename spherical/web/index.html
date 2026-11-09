@@ -1,2 +1,26 @@
 <!doctype html>
-<html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Místní 3D editor měsíční litofánie"><title>Luna · editor litofánie</title></head><body><div id="app"></div><script type="module" src="/src/main.ts"></script></body></html>
+<html lang="cs">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Luna: tvoř ploché a kulové litofánie pro 3D tisk s podsvícením.">
+<title>Luna · světlo v obraze</title><link rel="stylesheet" href="/src/home.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="Luna — úvod">◒ <span>LUNA<small>STUDIO LITOFÁNIE</small></span></a><span class="local">● Na tvém počítači</span></header>
+<main>
+<section class="intro"><p class="eyebrow">OBRÁZEK. MATERIÁL. SVĚTLO.</p>
+<h1>Dej svým obrázkům<br><em>nové světlo.</em></h1>
+<p class="lead">Z fotografie nebo kresby vytvoř litofánii pro 3D tisk. Její různá tloušťka promění podsvícení v obraz — na ploché desce i na povrchu Měsíce.</p></section>
+<section aria-labelledby="choose"><h2 id="choose">Kde chceš tvořit?</h2>
+<div class="editors">
+<a class="editor flat" href="/flat.html"><div class="art" aria-hidden="true"><div class="panel"><span>✦</span></div></div>
+<div class="card-copy"><span class="eyebrow">01 / PLOCHA</span><h3>Plochá litofánie <span>↗</span></h3>
+<p>Obraz do podsvíceného rámečku. Nastav rozměry desky, vrstvy obrázků a volitelný lem pro uchycení.</p><span class="enter">Otevřít plochý editor →</span></div></a>
+<a class="editor sphere" href="/sphere.html"><div class="art" aria-hidden="true"><div class="moon"></div></div>
+<div class="card-copy"><span class="eyebrow">02 / KOULE</span><h3>Měsíční litofánie <span>↗</span></h3>
+<p>Vlastní příběh na měsíční skořepině. Umísti motivy na STL a zvol, zda se promítnou do vnitřní nebo vnější stěny.</p><span class="enter">Otevřít kulový editor →</span></div></a>
+</div></section>
+<section class="workflow" aria-label="Jak Luna funguje"><div><b>01</b><h2>Sestav obraz</h2><p>Přidávej vrstvy, uprav šedou, kontrast a průhlednost. Každý motiv má vlastní polohu a velikost.</p></div>
+<div><b>02</b><h2>Rozsviť náhled</h2><p>Prohlédni si model ve 3D a vyzkoušej jas i teplotu světla. Náhled je orientační; výsledek ověř zkušebním tiskem.</p></div>
+<div><b>03</b><h2>Ulož a vytiskni</h2><p>Projekt .luna uchová zdroje a nastavení. Po přepočtu exportuj výsledné STL pro tisk.</p></div></section>
+<p class="note">Oba editory mají samostatný rozpracovaný projekt. Před vypnutím Luny si práci ulož tlačítkem „Uložit projekt (.luna)“. Soubory a výpočty zůstávají na tomto počítači; načtení obrázku z URL potřebuje internet.</p>
+</main><footer>LUNA / světlo v obraze <span>Vrstvy · 3D náhled · tiskové STL</span></footer>
+</body></html>
