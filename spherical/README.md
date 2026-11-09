@@ -172,6 +172,37 @@ Starší běžící služba nabízí jen zadní integraci a vysvětluje postup a
 - „Uložit projekt“ vytváří přenosný soubor `.luna` (ZIP). „Otevřít projekt“
   obnoví zdrojové STL, obrázky, úpravy, vrstvy, světlo i kameru bez dalších souborů.
 
+## Zkušební výřez Měsíce
+
+Pro rychlé srovnání motivu, jeho prosvícení nebo překrytí vrstev nemusíš tisknout
+celý Měsíc. V panelu **Zkušební výřez**:
+
+1. Natoč měsíc čelně k požadované oblasti. Zvol **Vyznačit obdélník na Měsíci**
+   a táhni přes oblast. Výběr není navázaný na jednu vrstvu.
+2. Alternativně vyber vrstvu, zadej **Okraj kolem motivu** v mm a klikni na
+   **Kolem vybrané vrstvy**. Přepočítá se obálka motivu včetně jeho natočení.
+3. Oranžové úchyty posouvají každou hranu samostatně; stejné řezy lze nastavit
+   číselně. Polohy jsou v místní rovině výběru v mm, nikoli délky po oblouku.
+   Tlačítko **Posouvat hrany výřezu** přepíná úpravu hran a otáčení kamery.
+   Escape ukončí režim výběru; přerušené tažení obnoví předchozí obdélník.
+4. Přepočítej a ověř model běžným tlačítkem. **Připravit vzorek na podložce**
+   vyřízne právě tuto ověřenou geometrii se všemi viditelnými vrstvami a otevře
+   samostatný otočný náhled. **Exportovat vzorek STL** uloží `moon-sample.stl`.
+
+Čtyři rovinné řezy uzavřou boky skutečné skořepiny; zadní polokoule se vyloučí.
+Výřez se pouze pevně otočí a posune, spodní řez leží na Z = 0. Nepřidává se
+podstavec a původní reliéf ani tloušťka uvnitř výřezu se nepřevzorkují.
+Výběr se ukládá do `.luna`, připravený vzorek se exportuje zvlášť. Změna výběru
+zneplatní jen vzorek; změna motivů nebo metody integrace vyžaduje nový přepočet
+celého modelu. Vzorek nepřepisuje export celého Měsíce.
+
+Výběr nesmí přesahovat okraj přední polokoule. Řezy, které nevytvoří uzavřený
+souvislý díl se stojnou plochou, jsou odmítnuty s vysvětlením. Kontroluje se
+uzavřenost i orientace hran, nikoli všechny možné samoprůniky. Rovná stojná
+plocha sama nezaručuje stabilitu, přilnavost ani tisk bez podpor: zvlášť u větších
+výřezů zkontroluj převisy a první vrstvy v tiskovém programu. Náhled vzorku ukazuje
+geometrii na podložce, nesimuluje prosvícení filamentu.
+
 ## Vrstvy 0 až N a úpravy obrázků
 
 Vrstva 0 je neměnné zdrojové STL. Každá obrazová vrstva má vlastní ID, odkaz

@@ -1,5 +1,30 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-09 — Samostatně stojící zkušební výřez Měsíce
+
+**Co:** Kulový editor umí vyznačit obdélník nezávisle na vrstvách, vytvořit výběr
+kolem motivu s okrajem v mm, doladit čtyři hrany a exportovat samostatný vzorek.
+Výběr se ukládá do projektu; vzorek má otočný náhled postavení na podložce.
+
+**Jak:** `sample.py` ořezává aktuální ověřenou síť přes VTK uzavřené rovinné řezy,
+bez regenerace reliéfu. Místní rámeček definuje rovinné rozměry; výběr kolem
+obrázku převádí jeho obloukové mapování do této roviny. Zadní polokoule je
+vyloučena, spodní řez se pevným otočením a posunutím položí na Z = 0.
+Kontrola odmítá otevřené/nesouhlasně orientované hrany, degenerované trojúhelníky,
+oddělené díly a chybějící stojnou plochu. ID vzorku je oddělené od ověřené
+revize Měsíce; změna modelu zneplatňuje obojí. Bezpodporovost ani mechanická
+stabilita libovolného výřezu se neslibují. Export používá stejný výsledek jako
+náhled, který zobrazuje geometrii, nikoli fyzikální prosvícení.
+
+Ověřeno na syntetické skořepině v různých orientacích a na uživatelově Měsíci
+s drakem v obou metodách integrace. Testy ovládání zahrnují tažení obdélníku,
+zrušení tažení, změnu hran, náhled, export a zneplatnění. Ruční kontrolu webu
+blokovala chyba nástroje pro připojení k prohlížeči; testy DOM nahrazují GPU.
+
+**Odkazy:** [Úkol 9](https://github.com/ByPS128/LitophanyStlGenerator/issues/9),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1)
+a [úkol 5](https://github.com/ByPS128/LitophanyStlGenerator/issues/5).
+
 ## 2026-11-08 — Spuštění jedním souborem a rozcestník Luny
 
 **Co:** `Start-Luna.cmd` připraví a spustí místní aplikaci, `Stop-Luna.cmd`

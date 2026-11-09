@@ -5,6 +5,7 @@ import {createMaterial} from './material';
 import {defaultImageSettings,hexColor,parseHex,type ImageSettings} from './image-settings';
 import {setControlState,moonControlReason,CONTROL_HELP,layerOrderNote,LAYER_REASON} from './control-state';
 import './style.css';
+import {SampleTool} from './sample-tool';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/">Rozcestník</a><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
@@ -107,6 +108,9 @@ const outline=new THREE.Line(new THREE.BufferGeometry(),lineMaterial);outline.re
 const marker=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0xf4c278,depthTest:false}));
 marker.renderOrder=10;guide.add(marker);
 const raycaster=new THREE.Raycaster();
+const sampleTool=new SampleTool({scene,camera,mesh,canvas:renderer.domElement,orbit,
+  context:()=>({radius:model?.radius??null,busy,resultId,exportable,layer:selectedId?placement():null}),
+  request,work,status,download,changed:()=>{if(sampleTool.interacting){moving=false;el('move').classList.remove('selected');}update();buttons();}});
 const resize=new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();});resize.observe(viewport);
 renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 
@@ -115,12 +119,14 @@ function buttons(){
   const state={busy,hasLayer:!!selectedId,index:layers.findIndex(l=>l.id===selectedId),count:layers.length,
     resultReady:!!resultId&&exportable,hasResult:!!resultId,modelLoaded:!!model,blender:blenderAvailable,integrationAvailable};
   document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#demo,#move').forEach(control=>{
+    if(control.closest('#sample-panel'))return;
     const reason=moonControlReason(control.id,state,!!control.closest('#image-editor'));
     setControlState(control,reason,CONTROL_HELP[control.id],reason!==LAYER_REASON&&!['layer-up','layer-down'].includes(control.id));
   });
   const note=layerOrderNote(state);el('layer-state-note').textContent=note;el('layer-state-note').hidden=!note;
   el('image-state-note').textContent=LAYER_REASON;el('image-state-note').hidden=state.hasLayer;
-  orbit.enabled=!busy&&!moving;
+  sampleTool.refresh();
+  orbit.enabled=!busy&&!moving&&!sampleTool.interacting;
 }
 async function work(message:string,action:()=>Promise<void>){
   if(busy)return;busy=true;if(previewTimer)clearTimeout(previewTimer);previewAgain=false;previewRevision++;
@@ -136,7 +142,7 @@ async function request(path:string,body?:unknown){
 function placement():Placement{return {anchor:anchor.toArray(),width_mm:value('width'),height_mm:value('height'),angle_deg:value('angle'),strength:value('strength')/100,min_mm:value('minimum'),max_mm:value('maximum')};}
 function sceneSettings(){return {brightness:value('brightness')/100,kelvin:value('kelvin'),attenuation:value('attenuation'),light:[value('led-x'),value('led-y'),value('led-z')],camera:camera.position.clone().sub(orbit.target).toArray()};}
 function invalidate(queue=true){
-  resultId=null;exportable=false;
+  resultId=null;exportable=false;sampleTool.invalidateModel();
   if(verifiedGeometry){verifiedGeometry.dispose();verifiedGeometry=null;}
   if(baseGeometry)mesh.geometry=baseGeometry;
   el('quality').textContent='Rychlý náhled';el('validation').textContent='Nastavení změněno. Před exportem přepočítej geometrii.';buttons();
@@ -159,7 +165,7 @@ function update(){
   el('brightness-value').textContent=`${value('brightness')} %`;el('kelvin-value').textContent=`${value('kelvin')} K`;
   el('attenuation-value').textContent=`${fmt(value('attenuation'))} /mm`;
   el('anchor-label').textContent=`Kotva ${fmt(Math.atan2(anchor.y,anchor.x)*180/Math.PI,1)}° / ${fmt(Math.asin(anchor.z)*180/Math.PI,1)}°`;
-  guide.visible=!!model&&!!selectedId&&!!layers.find(l=>l.id===selectedId)?.enabled&&el<HTMLInputElement>('guides').checked&&!original;
+  guide.visible=!sampleTool.interacting&&!!model&&!!selectedId&&!!layers.find(l=>l.id===selectedId)?.enabled&&el<HTMLInputElement>('guides').checked&&!original;
   if(!model||![p.width_mm,p.height_mm,p.angle_deg].every(Number.isFinite))return;
   const r=model.radius*1.018, points:THREE.Vector3[]=[];
   for(let side=0;side<4;side++)for(let j=0;j<=32;j++){
@@ -283,6 +289,7 @@ async function refreshComposite(force=false){
 }
 async function loadInfo(info:any,reset:boolean){
   blenderAvailable=!!info.blender;
+  sampleTool.available=!!info.sample_available;
   integrationAvailable=Array.isArray(info.integration_methods)&&info.integration_methods.includes("outside");
   el<HTMLSelectElement>("integration-method").value=integrationAvailable?(info.integration_method??"inside"):"inside";
   const oldModel=model;model=info.model;layers=info.layers??[];hasMotif=layers.some(l=>l.enabled);selectedId=null;
@@ -297,6 +304,7 @@ async function loadInfo(info:any,reset:boolean){
     el('empty').hidden=true;el('model-info').textContent=`${model.name} · Ø ${fmt(model.radius*2,1)} mm · ${fmt(model.triangles,0)} trojúhelníků`;
     home();
   }
+  if(reset)sampleTool.restore(info.sample_selection??null);
   selectLayer(info.selected_layer_id??layers.at(-1)?.id??null,false);
   if(reset&&info.restored_scene){const light=info.restored_scene;setValue('brightness',light.brightness*100);setValue('kelvin',light.kelvin);setValue('attenuation',light.attenuation);['led-x','led-y','led-z'].forEach((id,i)=>setValue(id,light.light[i]));camera.position.fromArray(light.camera);orbit.target.set(0,0,0);orbit.update();}
   previewRevision++;await refreshComposite(true);
@@ -368,7 +376,7 @@ el('render').onclick=()=>work('Předávám scénu Blenderu…',async()=>{
 });
 el('snapshot').onclick=()=>{const visible=guide.visible;guide.visible=false;renderer.render(scene,camera);renderer.domElement.toBlob(blob=>{if(blob)download(blob,'luna-preview.png');});guide.visible=visible;};
 el('save').onclick=()=>work('Ukládám zdrojové STL, originály, upravená PNG a metadata…',async()=>{
-  const response=await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId});
+  const response=await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId,sample_selection:sampleTool.selection});
   const included=response.headers.get('X-Luna-Result-Included')==='true';
   download(await response.blob(),'moon-project.luna');
   status(included?'Projekt uložen včetně aktuálního upraveného result.stl.':'Projekt uložen BEZ upraveného STL. Obsahuje zdroje a nastavení pro další úpravy. Pro přiložení výsledku nejdřív přepočítej a ověř model.',!included);
@@ -385,13 +393,13 @@ el('layer-remove').onclick=()=>{if(busy)return;const index=layers.findIndex(l=>l
 for(const [id,delta] of [['layer-up',1],['layer-down',-1]] as const)el(id).onclick=()=>{if(busy)return;syncSelected();const index=layers.findIndex(l=>l.id===selectedId),next=index+delta;if(index<0||next<0||next>=layers.length)return;[layers[index],layers[next]]=[layers[next],layers[index]];drawLayers();invalidate();update();};
 el('home').onclick=home;
 el('original').onclick=()=>{if(busy||!baseGeometry)return;original=!original;el('original').classList.toggle('selected',original);mesh.geometry=original?baseGeometry:(verifiedGeometry??baseGeometry);update();};
-el('move').onclick=()=>{if(busy)return;moving=!moving;el('move').classList.toggle('selected',moving);renderer.domElement.style.cursor=moving?'crosshair':'grab';buttons();};
+el('move').onclick=()=>{if(busy)return;sampleTool.stopInteraction();moving=!moving;el('move').classList.toggle('selected',moving);renderer.domElement.style.cursor=moving?'crosshair':'grab';update();buttons();};
 document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach(button=>button.onclick=()=>{currentMode=Number(button.dataset.mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('selected',b===button));el('mode-label').textContent=['POVRCH','PODSVÍCENÍ','TLOUŠŤKA'][currentMode];update();});
 
 function cast(event:PointerEvent){const rect=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2),camera);}
 let drag:string|null=null;
 renderer.domElement.addEventListener('pointerdown',event=>{
-  if(busy||!model||!selectedId||event.button!==0)return;cast(event);
+  if(sampleTool.interacting||busy||!model||!selectedId||event.button!==0)return;cast(event);
   const hit=guide.visible?raycaster.intersectObjects(handles,false)[0]:null;
   if(hit){drag=hit.object.userData.kind;orbit.enabled=false;event.stopImmediatePropagation();renderer.domElement.setPointerCapture(event.pointerId);}
   else if(moving||event.ctrlKey){drag='anchor';orbit.enabled=false;event.stopImmediatePropagation();renderer.domElement.setPointerCapture(event.pointerId);move(event);}
