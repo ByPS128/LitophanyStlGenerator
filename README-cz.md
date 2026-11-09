@@ -1,5 +1,10 @@
 # Lithophane STL Generátor
 
+**Nově: [Luna — prostorový editor kulové litofánie](spherical/README.md).**
+Spuštění místního 3D editoru: `./Start-Luna.ps1 -Install`. Podporuje STL Měsíce,
+průhledný PNG motiv, Ctrl + kliknutí pro kotvu, Shift pro poměr stran a náhled LED.
+Níže je dokumentace původního .NET generátoru plochých litofánií.
+
 Přeměňte své fotografie na úžasné 3D tisknutelné litofánie s přesností a jednoduchostí.
 
 ---

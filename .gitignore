@@ -48,6 +48,8 @@ ___sources.txt
 # Kernel Module Compile Results
 *.mod*
 *.cmd
+!/Start-Luna.cmd
+!/Stop-Luna.cmd
 .tmp_versions/
 modules.order
 Module.symvers
@@ -202,3 +204,12 @@ ASALocalRun/
 # c.f. http://www.westwind.com/reference/os-x/invisibles.html
 *.swp
 /temp/*
+
+# Local spherical editor environment, build output and user-owned source models
+.venv/
+.pytest_cache/
+spherical/web/dist/
+spherical/output/
+LithophaneStlGenerator/Sources/
+LithophaneStlGenerator/Projects/
+.serena/
