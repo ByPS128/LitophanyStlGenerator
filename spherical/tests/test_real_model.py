@@ -29,3 +29,12 @@ def test_supplied_moon_dragon(tmp_path, method):
     output = tmp_path/'moon-dragon.stl'
     engine.write(output,result)
     assert output.stat().st_size == 84+50*len(engine.faces)
+    from sample import SampleSelection, cut_sample, check_closed
+    selection = SampleSelection.read(dict(anchor=p.anchor.tolist(), angle_deg=0,
+        left=-55, right=55, bottom=-40, top=40), engine.radius)
+    sample = cut_sample(engine, result, selection)
+    check_closed(sample.points, sample.faces)
+    assert sample.points[:, 2].min() == 0
+    sample_path = tmp_path/'moon-dragon-sample.stl'
+    sample.write(sample_path)
+    assert sample_path.stat().st_size == 84+50*len(sample.faces)

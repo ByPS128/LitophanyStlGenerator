@@ -24,6 +24,7 @@ from layers import LayerStore
 from project_config import defaults, write_runtime_descriptor
 from remote_images import download_image
 from flat import handle as handle_flat
+from sample import SampleSelection, cut_sample
 
 ROOT = Path(__file__).resolve().parent
 
@@ -71,6 +72,8 @@ class State:
         self.restored_scene = None
         self.restored_limits = None
         self.integration_method = "inside"
+        self.sample_selection = None
+        self.sample = self.sample_id = None
         self.workspace = tempfile.TemporaryDirectory(prefix='luna-')
         self.pool = ThreadPoolExecutor(max_workers=1)
         self.render_future = None
@@ -88,10 +91,12 @@ class State:
         self.image_name = demo.name
         self.restored_scene = self.restored_limits = None
         self.integration_method = "inside"
+        self.sample_selection = None
         self.invalidate()
 
     def invalidate(self):
         self.result = self.result_id = None
+        self.sample = self.sample_id = None
 
     def info(self):
         model = self.engine.info(self.name) if self.engine else None
@@ -103,6 +108,7 @@ class State:
         if model and self.restored_limits:
             model.update(self.restored_limits)
         return {'model': model, 'image': self.image_name, 'layers': self.store.layers,
+                'sample_available': True, 'sample_selection': self.sample_selection,
                 'restored_scene': self.restored_scene,
                 'integration_method': self.integration_method, 'integration_methods': ['inside', 'outside'],
                 'image_size': list(self.motif.shape[:2][::-1]) if self.motif is not None else None,
@@ -195,6 +201,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.endswith('verified') and state.result is None:
                 raise ValueError('Chybí přepočítaný model.')
             return self.reply(state.engine.binary(state.result if self.path.endswith('verified') else None), 'application/octet-stream')
+        if self.path == '/api/sample-mesh':
+            if state.sample is None:
+                raise ValueError('Nejdřív připrav náhled výřezu.')
+            return self.reply(state.sample.binary(), 'application/octet-stream')
         if self.path == '/api/motif.png':
             if state.motif is None:
                 raise ValueError('Nejdřív načti motiv.')
@@ -267,7 +277,10 @@ class Handler(BaseHTTPRequestHandler):
             _,_,clean=store.parse(data,engine.radius)
             restored_scene=scene_settings(data.get('scene',{}),engine.radius)
             method=integration_method(data.get("integration_method", "inside"))
+            selection = data.get("sample_selection")
+            selection = SampleSelection.read(selection, engine.radius).json() if selection is not None else None
             store.layers=clean
+            state.sample_selection=selection
             state.integration_method=method
             state.engine,state.store,state.source_bytes=engine,store,model
             state.name=str(data.get('model_name','moon.stl'))[:250]
@@ -311,6 +324,8 @@ class Handler(BaseHTTPRequestHandler):
             saved_scene=scene_settings(data.get('scene',{}),state.engine.radius)
             payload=dict(layers=clean,min_mm=data['min_mm'],max_mm=data['max_mm'],
                          model_name=state.name,scene=saved_scene,integration_method=method)
+            selection = data.get('sample_selection')
+            payload['sample_selection'] = SampleSelection.read(selection, state.engine.radius).json() if selection is not None else None
             current=dict(layers=clean,min_mm=data['min_mm'],max_mm=data['max_mm'],integration_method=method)
             result_bytes=None
             if state.result and state.result_id==data.get('result_id') and state.result.stats['exportable'] and current==state.placement:
@@ -324,10 +339,25 @@ class Handler(BaseHTTPRequestHandler):
             parsed,placement,clean=state.store.parse(data,state.engine.radius)
             result = state.engine.calculate_layers(parsed, placement, method)
             state.integration_method=method
+            state.sample = state.sample_id = None
             state.result, state.result_id = result, uuid.uuid4().hex
             state.store.layers=clean
             state.placement = dict(layers=clean,min_mm=placement.min_mm,max_mm=placement.max_mm,integration_method=method)
             return self.json({'result_id': state.result_id, **result.stats})
+        if self.path == '/api/sample-prepare':
+            state.require_result(data.get('result_id'))
+            selection = SampleSelection.read(data.get('selection'), state.engine.radius)
+            sample = cut_sample(state.engine, state.result, selection)
+            state.sample, state.sample_id = sample, uuid.uuid4().hex
+            state.sample_selection = selection.json()
+            return self.json({'sample_id': state.sample_id, **sample.stats})
+        if self.path == '/api/sample-export':
+            state.require_result(data.get('result_id'))
+            if state.sample is None or data.get('sample_id') != state.sample_id:
+                raise ValueError('Nejdřív připrav aktuální výřez.')
+            output = Path(state.workspace.name) / 'sample.stl'
+            state.sample.write(output)
+            return self.reply(output.read_bytes(), 'model/stl')
         if self.path == '/api/export':
             state.require_result(data.get('result_id'))
             output = Path(state.workspace.name) / 'export.stl'
