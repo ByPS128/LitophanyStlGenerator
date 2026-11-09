@@ -7,7 +7,7 @@ from PIL import Image
 import pytest
 
 from layers import LayerStore
-from project_config import defaults
+from project_config import defaults, write_runtime_descriptor
 import server
 
 
@@ -15,6 +15,15 @@ def picture(color='red'):
     stream = BytesIO()
     Image.new('RGBA', (8, 4), color).save(stream, format='PNG')
     return stream.getvalue()
+
+
+def test_runtime_link_tracks_the_started_port_and_replaces_old_value(tmp_path):
+    write_runtime_descriptor(tmp_path, 8767)
+    path=tmp_path/'runtime.json'
+    assert json.loads(path.read_text())['flat_editor_url']=='http://127.0.0.1:8767/flat.html'
+    write_runtime_descriptor(tmp_path, 9001)
+    assert json.loads(path.read_text())['flat_editor_url']=='http://127.0.0.1:9001/flat.html'
+    assert not (tmp_path/'runtime.json.tmp').exists()
 
 
 def test_config_paths_are_relative_to_config(tmp_path):

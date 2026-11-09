@@ -3,10 +3,11 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {basis, decodeMesh, kelvinColor, resizeDimensions, surfacePoint, validatePlacement, type Placement} from './model';
 import {createMaterial} from './material';
 import {defaultImageSettings,hexColor,parseHex,type ImageSettings} from './image-settings';
+import {setControlState,moonControlReason,CONTROL_HELP,layerOrderNote,LAYER_REASON} from './control-state';
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><span class="local">● Místní pracovní prostor</span></header>
+<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/">Rozcestník</a><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
 <main><section class="workspace">
   <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Nový projekt</button></div>
   <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo založ nový projekt s ukázkovým motivem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
@@ -20,10 +21,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="add-url" class="quiet wide">＋ Přidat obrázek z URL</button><div class="fields"><button id="replace-file">Změnit obrázek z počítače</button><button id="replace-url">Změnit obrázek z URL</button></div><div id="layer-list" class="layer-list" aria-label="Vrstvy motivů"></div>
     <label class="layer-name">Název vybrané vrstvy<input id="layer-name" type="text" maxlength="250" placeholder="Vyber vrstvu"></label>
     <div class="layer-actions"><button id="layer-up" title="Posunout výš">↑</button><button id="layer-down" title="Posunout níž">↓</button><button id="layer-copy">Duplikovat</button><button id="layer-remove">Odebrat</button></div>
-    <p class="hint">Průhlednost chrání původní povrch. Bílá ztenčuje stěnu, černá ji zesiluje.</p>
+    <p id="layer-state-note" class="ux-group-note" role="status" hidden></p><p class="hint">Průhlednost chrání původní povrch. Bílá ztenčuje stěnu, černá ji zesiluje.</p>
   </section>
   <section id="image-editor"><div class="section-title"><span>02</span><h2>Úpravy vybraného PNG</h2></div>
-    <canvas id="image-preview" width="280" height="190" aria-label="Náhled upraveného obrázku"></canvas>
+    <p id="image-state-note" class="ux-group-note" hidden></p><canvas id="image-preview" width="280" height="190" aria-label="Náhled upraveného obrázku"></canvas>
     <canvas id="histogram" width="256" height="48" aria-label="Histogram jasů neprůhledných bodů"></canvas>
     <label>Metoda převodu do šedi<select id="gray-method"><option value="luminance">Vážený jas (Rec. 709)</option><option value="average">Průměr RGB</option><option value="lightness">Průměr nejsvětlejší a nejtmavší složky</option><option value="red">Červený kanál</option><option value="green">Zelený kanál</option><option value="blue">Modrý kanál</option></select></label>
     <label class="range">Jas obrázku <output id="image-brightness-value">0</output><input id="image-brightness" type="range" min="-100" max="100" value="0"></label>
@@ -47,7 +48,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </section>
   <section><div class="section-title"><span>04</span><h2>Tloušťka pro tisk</h2></div>
     <div class="fields"><label>Minimum <em>mm</em><input id="minimum" type="number" min=".1" step=".05" value=".7"></label><label>Maximum <em>mm</em><input id="maximum" type="number" min=".2" step=".05" value="2.7"></label></div>
-    <p class="hint">Mění se vnitřní stěna. Vnější krátery zůstávají zachované. Meze se vynucují v upravované oblasti.</p>
+    <label>Metoda integrace<select id="integration-method" aria-describedby="integration-note"><option value="inside">Zezadu — vnitřní stěna</option><option value="outside">Zepředu — vnější povrch</option></select></label>
+    <p id="integration-note" class="hint"></p>
+    <p class="hint">Meze se vynucují v upravované oblasti. Rychlý náhled simuluje tloušťku; změnu skutečného povrchu zobrazí až přepočet. Ostrost prosvícení porovnej zkušebním tiskem.</p>
     <button id="apply" class="primary" disabled>Přepočítat a ověřit model <span>→</span></button>
     <p id="validation" class="hint">Před exportem ověříme skutečnou geometrii.</p>
   </section>
@@ -59,7 +62,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <p class="hint">Průběžné prosvícení je aproximace. Útlum zkalibruj podle zkušebního výtisku a filamentu.</p>
   </section>
   <section><div class="section-title"><span>06</span><h2>Výstup a scéna</h2></div>
-    <div class="fields"><button id="export" disabled>Uložit STL</button><button id="snapshot" disabled>Náhled PNG</button><button id="save" disabled>Uložit projekt</button><button id="restore">Otevřít projekt</button></div><input id="settings-file" type="file" accept=".luna,.zip" hidden>
+    <div class="fields"><button id="export" disabled>Exportovat model pro tisk (.stl)</button><button id="snapshot" disabled>Náhled PNG</button><button id="save" disabled>Uložit projekt (.luna)</button><button id="restore">Otevřít projekt</button></div><input id="settings-file" type="file" accept=".luna,.zip" hidden>
+    <p class="hint">Projekt .luna uchová vrstvy a zdroje pro další úpravy. Export .stl je výsledný model pro tisk.</p>
     <button id="render" class="wide" disabled>Vykreslit v Blender Cycles</button><button id="bundle" class="quiet wide" disabled>Stáhnout scénu pro Blender ↗</button><p id="blender-info" class="hint">Zjišťuji dostupnost Blenderu…</p>
   </section>
 </aside></main><dialog id="url-dialog"><form id="url-form"><h2 id="url-title">Obrázek z URL</h2><label>Přímý odkaz na obrázek<input id="image-url" type="url" required placeholder="https://…/dragon.png"></label><p>Veřejný obrázek do 24 MB. Stažený originál se uloží do projektu.</p><div class="fields"><button type="button" id="url-cancel">Zrušit</button><button type="submit">Načíst obrázek</button></div></form></dialog><footer>LUNA / experimentální studio <span>STL geometrie · lokální zpracování · žádný účet</span></footer>`;
@@ -71,6 +75,7 @@ const fmt = (n:number,d=2) => n.toLocaleString('cs-CZ',{maximumFractionDigits:d}
 let model: {radius:number;center:number[];triangles:number;name:string;repairs:number;min_mm:number;max_mm:number} | null=null;
 interface Layer {id:string;name:string;image_id:string;enabled:boolean;placement:Omit<Placement,'min_mm'|'max_mm'>;image_settings:ImageSettings;}
 let layers:Layer[]=[],selectedId:string|null=null;
+let blenderAvailable=false, integrationAvailable=false;
 let hasMotif=false, busy=false, resultId:string|null=null, exportable=false, moving=false, original=false;
 let previewTimer:ReturnType<typeof setTimeout>|null=null,previewRevision=0,previewRunning=false,previewAgain=false;
 let pickingBackground=false,imageSelectionVersion=0,sourceId:string|null=null,sourceBitmap:ImageBitmap|null=null;
@@ -107,18 +112,14 @@ renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 
 function status(text:string,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
 function buttons(){
-  for(const id of ['open-stl','open-motif','demo','restore']) el<HTMLButtonElement>(id).disabled=busy;
-  for(const id of ['apply','open-motif','add-url'])el<HTMLButtonElement>(id).disabled=busy||!model;
-  for(const id of ['export','bundle','render'])el<HTMLButtonElement>(id).disabled=busy||!resultId||!exportable;
-  for(const id of ['save','snapshot'])el<HTMLButtonElement>(id).disabled=busy||!model;
-  document.querySelectorAll<HTMLInputElement>('aside input:not([type=file])').forEach(input=>input.disabled=busy);
-  document.querySelectorAll<HTMLButtonElement>('.layer-row button').forEach(button=>button.disabled=busy);
-  for(const id of ['width','height','angle','strength','layer-name'])el<HTMLInputElement>(id).disabled=busy||!selectedId;
-  const index=layers.findIndex(l=>l.id===selectedId);
-  el<HTMLButtonElement>('layer-up').disabled=busy||index<0||index===layers.length-1;
-  el<HTMLButtonElement>('layer-down').disabled=busy||index<=0;
-  for(const id of ['layer-copy','layer-remove','replace-file','replace-url'])el<HTMLButtonElement>(id).disabled=busy||index<0;
-  document.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLButtonElement>('#image-editor input,#image-editor select,#image-editor button').forEach(control=>control.disabled=busy||!selectedId);
+  const state={busy,hasLayer:!!selectedId,index:layers.findIndex(l=>l.id===selectedId),count:layers.length,
+    resultReady:!!resultId&&exportable,hasResult:!!resultId,modelLoaded:!!model,blender:blenderAvailable,integrationAvailable};
+  document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#demo,#move').forEach(control=>{
+    const reason=moonControlReason(control.id,state,!!control.closest('#image-editor'));
+    setControlState(control,reason,CONTROL_HELP[control.id],reason!==LAYER_REASON&&!['layer-up','layer-down'].includes(control.id));
+  });
+  const note=layerOrderNote(state);el('layer-state-note').textContent=note;el('layer-state-note').hidden=!note;
+  el('image-state-note').textContent=LAYER_REASON;el('image-state-note').hidden=state.hasLayer;
   orbit.enabled=!busy&&!moving;
 }
 async function work(message:string,action:()=>Promise<void>){
@@ -143,6 +144,9 @@ function invalidate(queue=true){
 }
 function update(){
   const p=placement(),b=basis(anchor),u=material.uniforms;
+  el("integration-note").textContent=el<HTMLSelectElement>("integration-method").value==="outside"
+    ?"Mění se vnější povrch v místě motivu, včetně kráterů. Vnitřní stěna zůstává zachovaná. Platí pro všechny vrstvy."
+    :"Mění se vnitřní stěna. Vnější krátery zůstávají zachované. Platí pro všechny vrstvy.";
   if(Number.isFinite(p.width_mm)&&p.width_mm>0)previousWidth=p.width_mm;
   if(Number.isFinite(p.height_mm)&&p.height_mm>0)previousHeight=p.height_mm;
   u.anchor.value.copy(anchor);u.east.value.copy(b.east);u.north.value.copy(b.north);
@@ -178,7 +182,7 @@ function composition(){
   const minimum=value('minimum'),maximum=value('maximum');
   validatePlacement({anchor:[1,0,0],width_mm:1,height_mm:1,angle_deg:0,strength:0,min_mm:minimum,max_mm:maximum},model.radius);
   for(const layer of layers)validatePlacement({...layer.placement,min_mm:minimum,max_mm:maximum},model.radius);
-  return {layers:structuredClone(layers),min_mm:minimum,max_mm:maximum};
+  return {layers:structuredClone(layers),min_mm:minimum,max_mm:maximum,integration_method:el<HTMLSelectElement>('integration-method').value};
 }
 function selectLayer(id:string|null,saveCurrent=true){
   if(saveCurrent)syncSelected();selectedId=id;const layer=layers.find(l=>l.id===id);
@@ -192,10 +196,11 @@ function drawLayers(){
   const list=el('layer-list');list.replaceChildren();
   for(const layer of [...layers].reverse()){
     const row=document.createElement('div');row.className='layer-row'+(layer.id===selectedId?' active':'');
-    const check=document.createElement('input');check.type='checkbox';check.checked=layer.enabled;check.disabled=busy;check.ariaLabel=`Viditelnost vrstvy ${layer.name}`;
+    const check=document.createElement('input');check.type='checkbox';check.checked=layer.enabled;check.ariaLabel=`Viditelnost vrstvy ${layer.name}`;
     check.onchange=()=>{layer.enabled=check.checked;invalidate();update();};
-    const button=document.createElement('button');button.textContent=layer.name;button.title=layer.name;button.disabled=busy;
+    const button=document.createElement('button');button.textContent=layer.name;button.title=layer.name;
     button.onclick=()=>selectLayer(layer.id);row.append(check,button);list.append(row);
+    const reason=busy?'Právě probíhá zpracování. Počkej na jeho dokončení.':null;setControlState(check,reason);setControlState(button,reason);
   }
   const base=document.createElement('div');base.className='base-layer';base.textContent='0 · STL — původní Měsíc (pevná vrstva)';list.append(base);
   el('motif-name').textContent=`${layers.length} ${layers.length===1?'vrstva':'vrstev'} · pořadí shora dolů`;
@@ -277,6 +282,9 @@ async function refreshComposite(force=false){
   finally{previewRunning=false;if(previewAgain){previewAgain=false;if(!busy)void refreshComposite();}}
 }
 async function loadInfo(info:any,reset:boolean){
+  blenderAvailable=!!info.blender;
+  integrationAvailable=Array.isArray(info.integration_methods)&&info.integration_methods.includes("outside");
+  el<HTMLSelectElement>("integration-method").value=integrationAvailable?(info.integration_method??"inside"):"inside";
   const oldModel=model;model=info.model;layers=info.layers??[];hasMotif=layers.some(l=>l.enabled);selectedId=null;
   el('stl-name').textContent=model?.name||'Načíst STL ↗';
   el('blender-info').textContent=info.blender?'Blender je dostupný. Finální výpočet poběží na tomto počítači.':'Blender nebyl nalezen. Scénu můžeš stáhnout a otevřít na počítači s Blenderem 4.2 nebo novějším.';
@@ -295,6 +303,7 @@ async function loadInfo(info:any,reset:boolean){
   update();buttons();
 }
 
+el('integration-method').addEventListener('change',()=>{invalidate();update();});
 for(const id of ['width','height','angle','strength','minimum','maximum'])el(id).addEventListener('input',()=>{
   if((id==='width'||id==='height')&&shiftDown&&Number.isFinite(value(id))&&value(id)>0){
     const [w,h]=resizeDimensions(previousWidth,previousHeight,id,value(id),true,model?Math.PI*model.radius:Infinity);
@@ -333,7 +342,7 @@ for(const id of ['stl','motif']){
     invalidate(false);await loadInfo(await response.json(),id==='stl');status('Soubor načten.');
   });
 }
-el('apply').onclick=()=>work('Přepočítávám vnitřní stěnu a ověřuji skutečné trojúhelníky…',async()=>{
+el('apply').onclick=()=>work('Přepočítávám zvolený povrch a ověřuji skutečné trojúhelníky…',async()=>{
   const result=await(await request('/api/apply',composition())).json();
   const geometry=decodeMesh(await(await request('/api/verified')).arrayBuffer());
   verifiedGeometry?.dispose();verifiedGeometry=geometry;resultId=result.result_id;exportable=result.exportable;
@@ -345,7 +354,7 @@ el('apply').onclick=()=>work('Přepočítávám vnitřní stěnu a ověřuji sku
   update();
 });
 function download(blob:Blob,name:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-el('export').onclick=()=>work('Připravuji STL…',async()=>{download(await(await request('/api/export',{result_id:resultId})).blob(),'moon-dragon.stl');status('STL uložen. Před tiskem zkontroluj řezy a perimetry v tiskovém programu.');});
+el('export').onclick=()=>work('Připravuji STL…',async()=>{download(await(await request('/api/export',{result_id:resultId})).blob(),`moon-${el<HTMLSelectElement>('integration-method').value}.stl`);status('STL uložen. Před tiskem zkontroluj řezy a perimetry v tiskovém programu.');});
 el('bundle').onclick=()=>work('Připravuji ověřený model a scénu pro Blender…',async()=>{download(await(await request('/api/bundle',{result_id:resultId,scene:sceneSettings()})).blob(),'luna-blender-scene.zip');status('Balíček obsahuje STL, scénu JSON a skript render_blender.py.');});
 let renderPolling=false;
 el('render').onclick=()=>work('Předávám scénu Blenderu…',async()=>{
@@ -358,7 +367,12 @@ el('render').onclick=()=>work('Předávám scénu Blenderu…',async()=>{
   }catch(error){clearInterval(timer);renderPolling=false;status(String(error),true);}},3000);
 });
 el('snapshot').onclick=()=>{const visible=guide.visible;guide.visible=false;renderer.render(scene,camera);renderer.domElement.toBlob(blob=>{if(blob)download(blob,'luna-preview.png');});guide.visible=visible;};
-el('save').onclick=()=>work('Ukládám zdrojové STL, originály, upravená PNG a metadata…',async()=>{download(await(await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId})).blob(),'moon-project.luna');status('Projekt uložen včetně originálů, upravených PNG a metadat. Aktuální ověřené STL se přibalí, pokud je dostupné.');});
+el('save').onclick=()=>work('Ukládám zdrojové STL, originály, upravená PNG a metadata…',async()=>{
+  const response=await request('/api/project-save',{...composition(),scene:sceneSettings(),result_id:resultId});
+  const included=response.headers.get('X-Luna-Result-Included')==='true';
+  download(await response.blob(),'moon-project.luna');
+  status(included?'Projekt uložen včetně aktuálního upraveného result.stl.':'Projekt uložen BEZ upraveného STL. Obsahuje zdroje a nastavení pro další úpravy. Pro přiložení výsledku nejdřív přepočítej a ověř model.',!included);
+});
 el('restore').onclick=()=>el<HTMLInputElement>('settings-file').click();
 el('settings-file').onchange=()=>work('Obnovuji celý projekt a měřím STL…',async()=>{
   const field=el<HTMLInputElement>('settings-file'),file=field.files?.[0];if(!file)return;field.value='';

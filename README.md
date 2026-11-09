@@ -1,10 +1,17 @@
 # Lithophane STL Generator
 
-**New: [Luna — local spherical lithophane editor](spherical/README.md).**
-Run `./Start-Luna.ps1 -Install` for the Python/TypeScript 3D editor with lunar STL
+**New: [Luna — local spherical and flat lithophane editor](spherical/README.md).**
+On Windows, double-click `Start-Luna.cmd` to prepare and launch the local home page;
+`Stop-Luna.cmd` stops the managed instance after you save your projects.
+The home page links the flat (`/flat.html`) and spherical (`/sphere.html`) editors.
+Alternatively, run `./Start-Luna.ps1 -Install` for the Python/TypeScript 3D editor with lunar STL
 import, transparent PNG placement, Ctrl-click anchoring, Shift aspect locking,
 wall validation and LED preview. The documentation below describes the original
 .NET flat-lithophane generator.
+
+The flat editor at `/flat.html` uses that original .NET implementation through
+[FlatLithophaneBridge](FlatLithophaneBridge/README.md), with image layers,
+protected mounting borders, a 3D light preview and portable project archives.
 
 Transform your photos into stunning 3D-printable lithophanes with precision and ease.
 

@@ -5,6 +5,9 @@ Read `README.md`, `spherical/README.md` for the area being changed, and
 
 - The .NET 8 console application owns flat lithophanes. `spherical/` owns the
   Python/VTK geometry engine and TypeScript/Three.js local editor.
+- `FlatLithophaneBridge/` reuses the original .NET algorithms for `/flat.html`;
+  read its README before changing planar geometry. Build it in Release before
+  Python integration tests; do not silently skip its tests when changing it.
 - Keep source models, user images, generated STL/render outputs and virtual
   environments out of Git. Do not modify files in `LithophaneStlGenerator/Sources`.
 - Preserve unedited vertex coordinates exactly. Alpha zero and strength zero

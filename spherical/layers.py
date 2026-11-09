@@ -97,7 +97,8 @@ class LayerStore:
         output=BytesIO()
         with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
             manifest={'version':2,**data,'images':{},'processed_images':{},'result_stl':None}
-            archive.writestr('source.stl',model_bytes)
+            if model_bytes is not None:
+                archive.writestr('source.stl',model_bytes)
             for image_id in referenced:
                 image=self.images[image_id]
                 path=f'sources/{image_id}{image.get("extension",".image")}'
@@ -130,7 +131,7 @@ class LayerStore:
                 raise ValueError('Neplatná metadata projektu.')
             if manifest.get('version') not in (1,2):
                 raise ValueError('Nepodporovaná verze projektu.')
-            model=archive.read('source.stl')
+            model=archive.read('source.stl') if manifest.get('kind') != 'flat' or 'source.stl' in names else b''
             if len(model)>200*1024**2:
                 raise ValueError('Model v projektu je příliš velký.')
             store=cls()

@@ -48,6 +48,8 @@ ___sources.txt
 # Kernel Module Compile Results
 *.mod*
 *.cmd
+!/Start-Luna.cmd
+!/Stop-Luna.cmd
 .tmp_versions/
 modules.order
 Module.symvers
@@ -209,4 +211,5 @@ ASALocalRun/
 spherical/web/dist/
 spherical/output/
 LithophaneStlGenerator/Sources/
+LithophaneStlGenerator/Projects/
 .serena/

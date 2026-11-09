@@ -1,5 +1,102 @@
 # Dodané změny a rozhodnutí
 
+## 2026-11-08 — Spuštění jedním souborem a rozcestník Luny
+
+**Co:** `Start-Luna.cmd` připraví a spustí místní aplikaci, `Stop-Luna.cmd`
+po potvrzení ukončí její procesy. Úvodní stránka představuje litofánii a odkazuje
+na plochý editor `/flat.html` a kulový editor `/sphere.html`.
+
+**Jak:** Společný `Manage-Luna.ps1` využívá existující sestavení v `Start-Luna.ps1`.
+Python obsluhuje web i API; .NET adaptér se spouští pouze pro výpočet ploch.
+Zámek brání souběžným startům, opakovaný start otevře spravovanou instanci.
+Obsazené porty se přeskočí. Zastavení ověřuje cestu, příkaz a čas vzniku procesu
+před ukončením jeho stromu; ručně spuštěné starší instance zůstávají nedotčené.
+Stav a diagnostika patří do ignorované složky `temp/`. Uživatel musí před
+zastavením uložit oba projekty. Rozcestník nepotřebuje JavaScript ani síťová písma.
+
+Automatický test spouští skutečné skripty v izolované složce s mezerami, ověřuje
+opakování, obsazený port, odmítnutí nesprávné identity a zastavení. Odkazy a obsah
+rozcestníku kontroluje test DOM. Ruční kontrolu v prohlížeči zablokovalo odmítnuté
+oprávnění nástroje; dostupnost všech tří stránek ověřena přes HTTP.
+
+**Odkazy:** [Úkol 7](https://github.com/ByPS128/LitophanyStlGenerator/issues/7),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1),
+[úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3)
+a [úkol 5](https://github.com/ByPS128/LitophanyStlGenerator/issues/5).
+
+
+## 2026-11-08 — Volba přední a zadní integrace Měsíce
+
+**Co:** Kulový editor nabízí změnu vnitřní nebo vnější stěny. Volba platí pro
+všechny vrstvy, ukládá se do projektu a rozlišuje názvy exportovaných STL.
+
+**Jak:** Výchozí `inside` zachovává dosavadní chování i pro starší projekty.
+`outside` posouvá pouze bezpečně rozpoznané vnější vrcholy; vnitřní stěna,
+límec a nezasažené vrcholy zůstávají přesně zachované. Korekce tloušťky používá
+průsečíky vybrané strany, ověření měří výsledné trojúhelníky. Metoda je součástí
+ověřené revize, takže projekt nepřibalí STL vypočítané pro jinou metodu.
+Rychlý náhled zůstává aproximací tloušťky; skutečný reliéf je vidět po přepočtu.
+Fyzická ostrost přední a zadní integrace vyžaduje srovnávací tisk.
+
+Ověřeno 109 testy Pythonu (včetně obou metod na uživatelově Měsíci s drakem),
+59 testy rozhraní a sestavením TypeScriptu. Testy rozhraní nahrazují GPU;
+nejde o vizuální ověření grafické karty ani kalibraci průchodu světla.
+
+**Odkazy:** [Úkol 5](https://github.com/ByPS128/LitophanyStlGenerator/issues/5),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1)
+a [úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3).
+
+
+## 2026-11-08 — Srozumitelná dostupnost ovládání
+
+**Co:** Plochá i kulová Luna vysvětlují zakázané prvky včetně konkrétního kroku
+pro zpřístupnění. Přidány nápovědy při najetí a ovládání klávesnicí, sdílené
+vysvětlení pořadí či výběru vrstvy a výrazná navigace ze starší běžící služby.
+
+**Jak:** `control-state.ts` sjednocuje pravidla a přístupné vysvětlení nativně
+zakázaných prvků. Nový projekt na aktuální službě nezakazuje přesah kvůli chybějícímu
+STL ani vrstvě. Starší služba nabízí uložení projektu a odkaz na aktuální editor
+podle lokálního `runtime.json`; původní projekt ani záložka se automaticky neruší.
+Testy přes skutečné obsluhy událostí stránky ověřují nový projekt, starší službu,
+přepočet, zpřístupnění exportu a jeho opětovné zablokování po úpravě.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+[PR 4](https://github.com/ByPS128/LitophanyStlGenerator/pull/4).
+
+## 2026-11-08 — Přesah obrázků a samostatná výška lemu
+
+**Co:** Plochý editor umožňuje volitelně přesahovat obrazovou plochu a motiv
+oříznout. Lem má samostatnou šířku a výšku pro zasunutí do připraveného rámečku.
+
+**Jak:** `allow_overflow` vypne omezování transformací ve vrstvě rozhraní i na
+serveru. Kompozice je oříznutá před filtrováním; po něm .NET znovu nastaví přesnou
+výšku chráněných uzlů lemu. `border_height_mm` je nezávislá na min/max motivu.
+Nové projekty mají výšku lemu 0,6 mm, starší soubory bez nového pole zachovávají
+původní maximum. Nastavení se ukládají do projektu. Testy skutečných STL ověřily
+nízký i vysoký lem se všemi filtry, přesné vnější rozměry a uzavřenost sítě.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+[PR 4](https://github.com/ByPS128/LitophanyStlGenerator/pull/4).
+
+## 2026-11-08 — Ploché litofánie s původním .NET jádrem
+
+**Co:** Přidán samostatný plochý editor s vrstvami, obrázky z počítače/URL,
+úpravami PNG, prosvícením, volitelným chráněným okrajem a projekty `.luna`.
+Tlačítka rozlišují rozpracovaný projekt od tiskového STL a uložení hlásí,
+zda výsledný model skutečně přibalilo.
+
+**Jak:** Nový `FlatLithophaneBridge` odkazuje na původní .NET projekt a volá jeho
+generování výšek, vyhlazování, spojitý převodník a zápis STL. Původní zdrojové
+soubory a CLI se nemění. Adaptér opravuje rozměry převzatého povrchu a uzavírá
+jej segmentovanými boky a základnou. Okraj se vynucuje po vyhlazení; natočené
+vrstvy se vejdou celé do obrazové plochy. Náhled při úpravách je zjednodušený,
+po přepočtu zobrazuje stejný povrch jako .NET export. Typ projektu odděluje
+plochou a kulovou kompozici. Automatické testy ověřily skutečné STL a původní
+CLI; vizuální ovládání blokovala chyba nástroje pro ovládání prohlížeče.
+
+**Odkazy:** [Úkol 3](https://github.com/ByPS128/LitophanyStlGenerator/issues/3),
+navazuje na [úkol 1](https://github.com/ByPS128/LitophanyStlGenerator/issues/1).
+
 ## 2026-11-08 — Výchozí motiv a výměna zdrojů vrstev
 
 **Co:** Nový projekt a import STL vytvářejí jednu konfigurovatelnou ukázkovou
