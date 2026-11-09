@@ -45,7 +45,7 @@ export function setControlState(control:Control,reason:string|null=null,help?:st
 
 interface SharedState {busy:boolean;hasLayer:boolean;index:number;count:number;resultReady:boolean;}
 export interface FlatControlContext extends SharedState {legacy:boolean;bridge:boolean;border:boolean;printMode:string;filter:string;}
-export interface MoonControlContext extends SharedState {modelLoaded:boolean;hasResult:boolean;blender:boolean;}
+export interface MoonControlContext extends SharedState {modelLoaded:boolean;hasResult:boolean;blender:boolean;integrationAvailable?:boolean;}
 export function layerOrderNote(state:SharedState):string{
   if(!state.hasLayer)return LAYER_REASON;
   if(state.count===1)return 'Toto je jediná obrazová vrstva. Pořadí půjde měnit po přidání další vrstvy.';
@@ -80,7 +80,8 @@ export function flatControlReason(id:string,state:FlatControlContext,imageSettin
 }
 export function moonControlReason(id:string,state:MoonControlContext,imageSetting=false):string|null{
   if(state.busy)return BUSY_REASON;
-  if(!state.modelLoaded&&['apply','open-motif','add-url','export','bundle','render','save','snapshot'].includes(id))return 'Nejdřív načti STL nebo založ nový projekt s Měsícem.';
+  if(id==='integration-method'&&!state.integrationAvailable)return 'Tato běžící služba umí pouze zadní integraci. Ulož projekt, spusť aktuální Lunu pomocí Start-Luna.ps1 a otevři v ní uložený projekt.';
+  if(!state.modelLoaded&&['integration-method','apply','open-motif','add-url','export','bundle','render','save','snapshot'].includes(id))return 'Nejdřív načti STL nebo založ nový projekt s Měsícem.';
   if(!state.hasLayer&&(imageSetting||moonLayerIds.has(id)))return LAYER_REASON;
   const order=orderReason(id,state);if(order)return order;
   if(id==='render'&&!state.blender)return 'Blender není nainstalovaný. Po ověření modelu můžeš stáhnout scénu a vykreslit ji na počítači s Blenderem.';
@@ -91,6 +92,7 @@ export function moonControlReason(id:string,state:MoonControlContext,imageSettin
 }
 
 export const CONTROL_HELP:Record<string,string>={
+  'integration-method':'Zezadu zachová vnější reliéf; zepředu zachová vnitřní stěnu a upraví vnější povrch. Změna vyžaduje nové ověření STL. Volba se ukládá do projektu.',
   'allow-overflow':'Po zapnutí může obrázek přesahovat obrazovou plochu. Přesah se ořízne; lem ani celkové rozměry tisku se nezmění. Platí pro všechny vrstvy.',
   'border-mm':'Šířka lemu od vnějšího okraje směrem k obrázku, na každé straně desky.',
   'border-height-mm':'Výška lemu v ose Z pro zasunutí do drážky rámečku. Je nezávislá na minimu a maximu obrázku.',

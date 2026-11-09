@@ -19,7 +19,7 @@ import zipfile
 
 import numpy as np
 from PIL import Image
-from engine import Engine
+from engine import Engine, integration_method
 from layers import LayerStore
 from project_config import defaults, write_runtime_descriptor
 from remote_images import download_image
@@ -70,6 +70,7 @@ class State:
         self.source_bytes = None
         self.restored_scene = None
         self.restored_limits = None
+        self.integration_method = "inside"
         self.workspace = tempfile.TemporaryDirectory(prefix='luna-')
         self.pool = ThreadPoolExecutor(max_workers=1)
         self.render_future = None
@@ -86,6 +87,7 @@ class State:
         self.motif = store.images[layer['image_id']]['motif']
         self.image_name = demo.name
         self.restored_scene = self.restored_limits = None
+        self.integration_method = "inside"
         self.invalidate()
 
     def invalidate(self):
@@ -102,6 +104,7 @@ class State:
             model.update(self.restored_limits)
         return {'model': model, 'image': self.image_name, 'layers': self.store.layers,
                 'restored_scene': self.restored_scene,
+                'integration_method': self.integration_method, 'integration_methods': ['inside', 'outside'],
                 'image_size': list(self.motif.shape[:2][::-1]) if self.motif is not None else None,
                 'blender': bool(find_blender())}
 
@@ -263,7 +266,9 @@ class Handler(BaseHTTPRequestHandler):
             engine=Engine(path)
             _,_,clean=store.parse(data,engine.radius)
             restored_scene=scene_settings(data.get('scene',{}),engine.radius)
+            method=integration_method(data.get("integration_method", "inside"))
             store.layers=clean
+            state.integration_method=method
             state.engine,state.store,state.source_bytes=engine,store,model
             state.name=str(data.get('model_name','moon.stl'))[:250]
             state.restored_scene=restored_scene
@@ -287,22 +292,26 @@ class Handler(BaseHTTPRequestHandler):
             processed=state.store.processed(image_id,data.get('image_settings'))
             return self.json({'png':base64.b64encode(processed['png']).decode('ascii'),
                               'histogram':processed['histogram']})
+        if self.path in ('/api/layers', '/api/preview-layers', '/api/project-save', '/api/apply'):
+            method = integration_method(data.get('integration_method', 'inside'))
         if self.path == '/api/layers':
             _,_,clean=state.store.parse(data,state.engine.radius)
             state.store.layers=clean
+            state.integration_method=method
             state.invalidate()
             return self.json(state.info())
         if self.path == '/api/preview-layers':
             parsed,_,clean=state.store.parse(data,state.engine.radius)
             state.store.layers=clean
+            state.integration_method=method
             state.invalidate()
             return self.reply(state.store.preview(parsed,state.engine.radius),'image/png')
         if self.path == '/api/project-save':
             _,_,clean=state.store.parse(data,state.engine.radius)
             saved_scene=scene_settings(data.get('scene',{}),state.engine.radius)
             payload=dict(layers=clean,min_mm=data['min_mm'],max_mm=data['max_mm'],
-                         model_name=state.name,scene=saved_scene)
-            current=dict(layers=clean,min_mm=data['min_mm'],max_mm=data['max_mm'])
+                         model_name=state.name,scene=saved_scene,integration_method=method)
+            current=dict(layers=clean,min_mm=data['min_mm'],max_mm=data['max_mm'],integration_method=method)
             result_bytes=None
             if state.result and state.result_id==data.get('result_id') and state.result.stats['exportable'] and current==state.placement:
                 output=Path(state.workspace.name)/'project-result.stl'
@@ -313,10 +322,11 @@ class Handler(BaseHTTPRequestHandler):
                               headers={'X-Luna-Result-Included': 'true' if result_bytes is not None else 'false'})
         if self.path == '/api/apply':
             parsed,placement,clean=state.store.parse(data,state.engine.radius)
-            result = state.engine.calculate_layers(parsed, placement)
+            result = state.engine.calculate_layers(parsed, placement, method)
+            state.integration_method=method
             state.result, state.result_id = result, uuid.uuid4().hex
             state.store.layers=clean
-            state.placement = dict(layers=clean,min_mm=placement.min_mm,max_mm=placement.max_mm)
+            state.placement = dict(layers=clean,min_mm=placement.min_mm,max_mm=placement.max_mm,integration_method=method)
             return self.json({'result_id': state.result_id, **result.stats})
         if self.path == '/api/export':
             state.require_result(data.get('result_id'))

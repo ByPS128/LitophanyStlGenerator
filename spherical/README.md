@@ -17,7 +17,30 @@ Pro plochou variantu je potřeba také .NET SDK podporující .NET 8 a runtime .
 Pro finální scénu je volitelně potřeba Blender 4.2 nebo novější. Vývoj a testy
 proběhly s Pythonem 3.13.2, Node.js 24.14.1 a VTK 9.7.2.
 
-Z kořene repozitáře:
+Nejjednodušší spuštění ve Windows: otevři **`Start-Luna.cmd`** v kořeni projektu.
+Připraví Pythonové prostředí (při prvním spuštění i závislosti), sestaví web
+a původní .NET jádro s adaptérem, spustí místní službu na pozadí a otevře
+rozcestník. Potřebuje nainstalovaný Python, Node.js/npm a .NET SDK uvedené výše.
+`Start-Luna.cmd -Install` znovu nainstaluje závislosti. Opakované spuštění
+otevře již běžící spravovanou instanci; aktualizace kódu vyžaduje zastavení a nový start.
+
+**`Stop-Luna.cmd`** po potvrzení zastaví tuto instanci i případné její výpočty.
+Předtím ulož projekty v obou editorech; neuložená práce v paměti se ztratí.
+Uložené soubory se nemažou. Starší ručně spuštěné instance ani jiné Pythonové
+a .NET aplikace se neukončují. Spouštěč kontroluje cestu programu, příkaz a čas
+vzniku procesu, aby omylem nezastavil jiný proces s opětovně použitým číslem.
+
+Výchozí port je 8765. Je-li obsazený, vybere se první volný z následujících
+20 portů; správnou adresu spouštěč vypíše a otevře. Stav a diagnostika jsou
+v ignorované složce `temp/`: `luna-process.json`, `luna-stdout.log`,
+`luna-stderr.log`. Web a API poskytuje jediná Pythonová služba; .NET adaptér
+se spouští až při výpočtu plochého modelu a nemusí trvale běžet zvlášť.
+
+Úvodní stránka `/` představí Lunu a nabízí oba editory:
+`/flat.html` pro desku do rámečku, `/sphere.html` pro měsíční skořepinu.
+V záhlaví obou editorů je odkaz zpět na rozcestník.
+
+Původní spuštění v otevřeném terminálu zůstává dostupné. Z kořene repozitáře:
 
 ```powershell
 .\Start-Luna.ps1 -Install # první instalace závislostí
@@ -117,6 +140,22 @@ plochých litofánií se otevírají ve svých příslušných editorech.
 
 ### Měsíční litofánie
 
+V části **Tloušťka pro tisk → Metoda integrace** lze zvolit:
+- **Zezadu — vnitřní stěna** (výchozí): zachová vnější krátery a mění vnitřek.
+- **Zepředu — vnější povrch**: zachová vnitřní stěnu a mění vnější reliéf,
+  takže motiv může být vidět i bez podsvícení.
+
+Volba platí pro všechny vrstvy a ukládá se do projektu jako `integration_method`
+(`inside` / `outside`). Starší projekty bez této hodnoty používají `inside`.
+Přepnutí zneplatní ověření; před exportem je nutný nový přepočet. Názvy exportů
+`moon-inside.stl` a `moon-outside.stl` pomáhají rozlišit zkušební výtisky.
+Průhledné oblasti a protější stěna zůstávají přesně zachované v obou metodách.
+Rychlý náhled simuluje cílovou tloušťku na původním povrchu; teprve přepočet
+zobrazí skutečně posunuté vrcholy a jejich normály. Náhled nepředpovídá rozdíl
+v ostrosti při rozptylu světla v konkrétním filamentu. Ten ověř srovnávacím tiskem.
+Starší běžící služba nabízí jen zadní integraci a vysvětluje postup aktualizace.
+
+
 - Levé tlačítko a tažení otáčí kamerou, kolečko přibližuje, pravé tlačítko posouvá pohled.
 - **Ctrl + kliknutí** ukotví střed obrázku na STL; **Ctrl + tažení** jej přesouvá.
   Alternativou je přepínač „Umístit motiv“.
@@ -205,7 +244,7 @@ tisk (.stl)“. Zpráva po uložení výslovně uvádí, zda archiv obsahuje akt
 2. Kontrola hran odmítne nekonzistentní síť. Pouze malé mezery tvořené třemi
    hranami může uzavřít; počet oprav se zobrazuje a ukládá k ověření.
 3. Radiální paprsky měří vnitřní a vnější stěnu. Upravit lze jen bezpečně
-   rozpoznanou vnitřní část kulové skořepiny; montážní límec zůstává pevný.
+   rozpoznanou zvolenou stranu kulové skořepiny; montážní límec zůstává pevný.
 4. Azimutální ekvidistantní mapování promítne PNG kolem kotvy. Obraz se načítá
    nejvýše v rozlišení 1600 × 1600. Jas RGB je vážený součtem 0,2126 / 0,7152 /
    0,0722; výpočty používají hodnoty obrázku bez dalšího gama převodu.
@@ -215,8 +254,8 @@ tisk (.stl)“. Zpráva po uložení výslovně uvádí, zda archiv obsahuje akt
    skládají nad sebou v této násobené reprezentaci a meze se uplatní na společný
    výsledek. Průhledná místa všech vrstev dohromady zachovávají původní model.
 6. Meze se aplikují jen v zasažené oblasti. Nulová alfa nebo dominance zachová
-   původní vrcholy přesně, i když leží mimo meze. Vnější vrcholy se neposouvají.
-7. Korekce radiálních měření přerozděluje pouze posuny již zasažených vnitřních
+   původní vrcholy přesně, i když leží mimo meze. Protější stěna se neposouvá.
+7. Korekce radiálních měření přerozděluje pouze posuny již zasažených vybraných
    vrcholů. Nezasažené vrcholy mají nulovou kapacitu pro korekci. Korekce může
    lokálně změnit požadovanou dominanci, aby dodržela tloušťku.
 8. Ověření používá skutečné nové trojúhelníky: směry všech původních vrcholů,

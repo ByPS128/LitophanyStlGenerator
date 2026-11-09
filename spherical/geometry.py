@@ -172,7 +172,7 @@ class RaySampler:
         self.locator.SetDataSet(mesh)
         self.locator.BuildLocator()
 
-    def radii(self, directions, inner_faces=None):
+    def radii(self, directions, inner_faces=None, outer_faces=None):
         inner = np.full(len(directions), np.nan)
         outer = np.full_like(inner, np.nan)
         endpoints = (self.center + self.far * directions).tolist()
@@ -198,6 +198,8 @@ class RaySampler:
                 inner[i] = hits[0]
                 if inner_faces is not None:
                     inner_faces[i] = first_cell
+                if outer_faces is not None:
+                    outer_faces[i] = ordered[-1][1]
         return inner, outer
 
     def pick(self, start, end):
@@ -242,6 +244,10 @@ class Moon:
         exterior[self.faces[cosine >= -0.08].ravel()] = True
         self.interior = np.flatnonzero(~exterior)
         self.exterior = np.flatnonzero(exterior)
+        # Only vertices whose incident triangles all face outward can move.
+        fixed_outer = np.zeros(len(self.points), dtype=bool)
+        fixed_outer[self.faces[cosine <= 0.08].ravel()] = True
+        self.outward = np.flatnonzero(~fixed_outer)
         far = np.linalg.norm(self.points - self.center, axis=1).max() * 1.15
         self.rays = RaySampler(polydata(self.points, self.faces), self.center, far)
 

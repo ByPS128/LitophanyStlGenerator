@@ -1,4 +1,4 @@
-param([switch]$Install, [switch]$Empty, [int]$Port = 8765)
+param([switch]$Install, [switch]$Empty, [int]$Port = 8765, [switch]$PrepareOnly)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 $pythonPath = Join-Path $PSScriptRoot '.venv/Scripts/python.exe'
@@ -22,6 +22,7 @@ try {
     npm.cmd run build
     if ($LASTEXITCODE -ne 0) { throw 'Sestavení rozhraní selhalo.' }
 } finally { Pop-Location }
-$serverArgs = @('-X', 'utf8', 'spherical/server.py', '--port', "$Port")
+if ($PrepareOnly) { return }
+$serverArgs = @('-X', 'utf8', (Join-Path $PSScriptRoot 'spherical/server.py'), '--port', "$Port")
 if (!$Empty) { $serverArgs += '--demo-if-available' }
 & $pythonPath @serverArgs

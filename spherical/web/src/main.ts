@@ -7,7 +7,7 @@ import {setControlState,moonControlReason,CONTROL_HELP,layerOrderNote,LAYER_REAS
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
+<header><div class="brand"><span class="moon-icon">◒</span><div>LUNA <small>STUDIO LITOFÁNIE</small></div></div><a href="/">Rozcestník</a><a href="/flat.html">Ploché litofánie →</a><span class="local">● Místní pracovní prostor</span></header>
 <main><section class="workspace">
   <div class="scene-top"><div><span class="eyebrow">SVĚTLO UKRYTÉ V POVRCHU</span><h1>Tvůj příběh na Měsíci.</h1><p id="model-info">Načti měsíční skořepinu a přidej vlastní motiv.</p></div><button id="demo" class="quiet">Nový projekt</button></div>
   <div id="viewport"><div id="empty">◌<p>Začni načtením modelu STL</p><small>nebo založ nový projekt s ukázkovým motivem</small></div><div class="scene-label"><span id="mode-label">PODSVÍCENÍ</span><span id="quality">Rychlý náhled</span></div><div id="busy" hidden><span class="spinner"></span><p id="busy-text">Počítám…</p></div></div>
@@ -48,7 +48,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </section>
   <section><div class="section-title"><span>04</span><h2>Tloušťka pro tisk</h2></div>
     <div class="fields"><label>Minimum <em>mm</em><input id="minimum" type="number" min=".1" step=".05" value=".7"></label><label>Maximum <em>mm</em><input id="maximum" type="number" min=".2" step=".05" value="2.7"></label></div>
-    <p class="hint">Mění se vnitřní stěna. Vnější krátery zůstávají zachované. Meze se vynucují v upravované oblasti.</p>
+    <label>Metoda integrace<select id="integration-method" aria-describedby="integration-note"><option value="inside">Zezadu — vnitřní stěna</option><option value="outside">Zepředu — vnější povrch</option></select></label>
+    <p id="integration-note" class="hint"></p>
+    <p class="hint">Meze se vynucují v upravované oblasti. Rychlý náhled simuluje tloušťku; změnu skutečného povrchu zobrazí až přepočet. Ostrost prosvícení porovnej zkušebním tiskem.</p>
     <button id="apply" class="primary" disabled>Přepočítat a ověřit model <span>→</span></button>
     <p id="validation" class="hint">Před exportem ověříme skutečnou geometrii.</p>
   </section>
@@ -73,7 +75,7 @@ const fmt = (n:number,d=2) => n.toLocaleString('cs-CZ',{maximumFractionDigits:d}
 let model: {radius:number;center:number[];triangles:number;name:string;repairs:number;min_mm:number;max_mm:number} | null=null;
 interface Layer {id:string;name:string;image_id:string;enabled:boolean;placement:Omit<Placement,'min_mm'|'max_mm'>;image_settings:ImageSettings;}
 let layers:Layer[]=[],selectedId:string|null=null;
-let blenderAvailable=false;
+let blenderAvailable=false, integrationAvailable=false;
 let hasMotif=false, busy=false, resultId:string|null=null, exportable=false, moving=false, original=false;
 let previewTimer:ReturnType<typeof setTimeout>|null=null,previewRevision=0,previewRunning=false,previewAgain=false;
 let pickingBackground=false,imageSelectionVersion=0,sourceId:string|null=null,sourceBitmap:ImageBitmap|null=null;
@@ -111,7 +113,7 @@ renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 function status(text:string,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
 function buttons(){
   const state={busy,hasLayer:!!selectedId,index:layers.findIndex(l=>l.id===selectedId),count:layers.length,
-    resultReady:!!resultId&&exportable,hasResult:!!resultId,modelLoaded:!!model,blender:blenderAvailable};
+    resultReady:!!resultId&&exportable,hasResult:!!resultId,modelLoaded:!!model,blender:blenderAvailable,integrationAvailable};
   document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement>('aside input,aside button,aside select,#demo,#move').forEach(control=>{
     const reason=moonControlReason(control.id,state,!!control.closest('#image-editor'));
     setControlState(control,reason,CONTROL_HELP[control.id],reason!==LAYER_REASON&&!['layer-up','layer-down'].includes(control.id));
@@ -142,6 +144,9 @@ function invalidate(queue=true){
 }
 function update(){
   const p=placement(),b=basis(anchor),u=material.uniforms;
+  el("integration-note").textContent=el<HTMLSelectElement>("integration-method").value==="outside"
+    ?"Mění se vnější povrch v místě motivu, včetně kráterů. Vnitřní stěna zůstává zachovaná. Platí pro všechny vrstvy."
+    :"Mění se vnitřní stěna. Vnější krátery zůstávají zachované. Platí pro všechny vrstvy.";
   if(Number.isFinite(p.width_mm)&&p.width_mm>0)previousWidth=p.width_mm;
   if(Number.isFinite(p.height_mm)&&p.height_mm>0)previousHeight=p.height_mm;
   u.anchor.value.copy(anchor);u.east.value.copy(b.east);u.north.value.copy(b.north);
@@ -177,7 +182,7 @@ function composition(){
   const minimum=value('minimum'),maximum=value('maximum');
   validatePlacement({anchor:[1,0,0],width_mm:1,height_mm:1,angle_deg:0,strength:0,min_mm:minimum,max_mm:maximum},model.radius);
   for(const layer of layers)validatePlacement({...layer.placement,min_mm:minimum,max_mm:maximum},model.radius);
-  return {layers:structuredClone(layers),min_mm:minimum,max_mm:maximum};
+  return {layers:structuredClone(layers),min_mm:minimum,max_mm:maximum,integration_method:el<HTMLSelectElement>('integration-method').value};
 }
 function selectLayer(id:string|null,saveCurrent=true){
   if(saveCurrent)syncSelected();selectedId=id;const layer=layers.find(l=>l.id===id);
@@ -278,6 +283,8 @@ async function refreshComposite(force=false){
 }
 async function loadInfo(info:any,reset:boolean){
   blenderAvailable=!!info.blender;
+  integrationAvailable=Array.isArray(info.integration_methods)&&info.integration_methods.includes("outside");
+  el<HTMLSelectElement>("integration-method").value=integrationAvailable?(info.integration_method??"inside"):"inside";
   const oldModel=model;model=info.model;layers=info.layers??[];hasMotif=layers.some(l=>l.enabled);selectedId=null;
   el('stl-name').textContent=model?.name||'Načíst STL ↗';
   el('blender-info').textContent=info.blender?'Blender je dostupný. Finální výpočet poběží na tomto počítači.':'Blender nebyl nalezen. Scénu můžeš stáhnout a otevřít na počítači s Blenderem 4.2 nebo novějším.';
@@ -296,6 +303,7 @@ async function loadInfo(info:any,reset:boolean){
   update();buttons();
 }
 
+el('integration-method').addEventListener('change',()=>{invalidate();update();});
 for(const id of ['width','height','angle','strength','minimum','maximum'])el(id).addEventListener('input',()=>{
   if((id==='width'||id==='height')&&shiftDown&&Number.isFinite(value(id))&&value(id)>0){
     const [w,h]=resizeDimensions(previousWidth,previousHeight,id,value(id),true,model?Math.PI*model.radius:Infinity);
@@ -334,7 +342,7 @@ for(const id of ['stl','motif']){
     invalidate(false);await loadInfo(await response.json(),id==='stl');status('Soubor načten.');
   });
 }
-el('apply').onclick=()=>work('Přepočítávám vnitřní stěnu a ověřuji skutečné trojúhelníky…',async()=>{
+el('apply').onclick=()=>work('Přepočítávám zvolený povrch a ověřuji skutečné trojúhelníky…',async()=>{
   const result=await(await request('/api/apply',composition())).json();
   const geometry=decodeMesh(await(await request('/api/verified')).arrayBuffer());
   verifiedGeometry?.dispose();verifiedGeometry=geometry;resultId=result.result_id;exportable=result.exportable;
@@ -346,7 +354,7 @@ el('apply').onclick=()=>work('Přepočítávám vnitřní stěnu a ověřuji sku
   update();
 });
 function download(blob:Blob,name:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-el('export').onclick=()=>work('Připravuji STL…',async()=>{download(await(await request('/api/export',{result_id:resultId})).blob(),'moon-dragon.stl');status('STL uložen. Před tiskem zkontroluj řezy a perimetry v tiskovém programu.');});
+el('export').onclick=()=>work('Připravuji STL…',async()=>{download(await(await request('/api/export',{result_id:resultId})).blob(),`moon-${el<HTMLSelectElement>('integration-method').value}.stl`);status('STL uložen. Před tiskem zkontroluj řezy a perimetry v tiskovém programu.');});
 el('bundle').onclick=()=>work('Připravuji ověřený model a scénu pro Blender…',async()=>{download(await(await request('/api/bundle',{result_id:resultId,scene:sceneSettings()})).blob(),'luna-blender-scene.zip');status('Balíček obsahuje STL, scénu JSON a skript render_blender.py.');});
 let renderPolling=false;
 el('render').onclick=()=>work('Předávám scénu Blenderu…',async()=>{
